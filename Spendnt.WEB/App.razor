@@ -1,0 +1,31 @@
+﻿@* Spendnt.WEB/App.razor *@
+@using Spendnt.WEB.Shared
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeDataFound"> 
+            <AuthorizeRouteView RouteData="@routeDataFound" DefaultLayout="@typeof(MainLayout)" Context="authState"> 
+                <NotAuthorized>
+                    @if (authState.User.Identity?.IsAuthenticated != true) 
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <p role="alert">No tienes permiso para acceder a este recurso.</p>
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <p role="status">Autorizando...</p>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeDataFound" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>No Encontrado</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Lo sentimos, no hay nada en esta dirección.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

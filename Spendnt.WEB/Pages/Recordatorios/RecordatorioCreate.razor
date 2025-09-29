@@ -1,0 +1,42 @@
+﻿@page "/recordatorios/create"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService Swal
+
+<h3>Crear Nuevo Recordatorio de Gasto</h3>
+
+<RecordatorioForm Recordatorio="recordatorioModel" OnValidSubmit="Guardar" />
+
+@code {
+    private RecordatorioGasto recordatorioModel = new();
+
+    protected override void OnInitialized()
+    {
+        if (recordatorioModel.FechaProgramada == DateTime.MinValue)
+        {
+            recordatorioModel.FechaProgramada = DateTime.Today.AddDays(7); 
+        }
+    }
+
+    private async Task Guardar()
+    {
+        var response = await repository.PostAsync("/api/RecordatoriosGasto", recordatorioModel);
+        if (response.Error)
+        {
+            var mensaje = await response.GetErrorMessageAsync();
+            await Swal.FireAsync("Error", $"No se pudo crear el recordatorio: {mensaje}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            navigationManager.NavigateTo("/recordatorios");
+        }
+    }
+}

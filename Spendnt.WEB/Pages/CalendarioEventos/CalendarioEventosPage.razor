@@ -1,0 +1,135 @@
+﻿@page "/calendario"
+@attribute [Authorize]
+
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using Spendnt.Shared.DTOs
+@using Microsoft.AspNetCore.Authorization
+
+@inject IRepository repository
+@inject SweetAlertService swal
+
+<h1>Calendario de Eventos Financieros</h1>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label for="fechaInicio" class="form-label">Fecha de Inicio:</label>
+        <InputDate id="fechaInicio" class="form-control" @bind-Value="fechaInicio" />
+    </div>
+    <div class="col-md-4">
+        <label for="fechaFin" class="form-label">Fecha de Fin:</label>
+        <InputDate id="fechaFin" class="form-control" @bind-Value="fechaFin" />
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button class="btn btn-primary" @onclick="CargarEventos" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span role="status"> Cargando...</span>
+            }
+            else
+            {
+                <span>Cargar Eventos</span>
+            }
+        </button>
+    </div>
+</div>
+
+@if (isLoading && eventosDelCalendario == null)
+{
+    <div class="d-flex justify-content-center my-3">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Cargando eventos...</span>
+        </div>
+    </div>
+}
+else if (eventosDelCalendario != null && eventosDelCalendario.Any())
+{
+    <div class="list-group mt-3">
+        @foreach (var evento in eventosDelCalendario.OrderBy(e => e.Start))
+        {
+            <div class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm border-start border-5 @GetEventColorClass(evento.Tipo)">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">@evento.Title</h5>
+                    <small class="text-muted">@evento.Start.ToString("dd/MM/yyyy")</small>
+                </div>
+                <p class="mb-1 text-capitalize">@evento.Tipo</p>
+                @if (evento.Monto.HasValue)
+                {
+                    <small class="fw-bold @GetMontoColorClass(evento.Tipo)">Monto: @evento.Monto.Value.ToString("C")</small>
+                }
+            </div>
+        }
+    </div>
+}
+else if (eventosDelCalendario != null && !eventosDelCalendario.Any() && !isLoading)
+{
+    <div class="alert alert-info mt-3" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        No se encontraron eventos para el rango de fechas seleccionado.
+    </div>
+}
+else if (!isLoading)
+{
+    <div class="alert alert-warning mt-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        No se ha podido cargar la información de eventos. Intenta presionar "Cargar Eventos".
+    </div>
+}
+
+@code {
+    private DateTime fechaInicio = DateTime.Today.AddMonths(-1);
+    private DateTime fechaFin = DateTime.Today.AddMonths(1);
+    private List<CalendarioEventoDto>? eventosDelCalendario;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEventos();
+    }
+
+    private async Task CargarEventos()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        string url = $"/api/calendarioeventos?fechaInicio={fechaInicio:yyyy-MM-dd}&fechaFin={fechaFin:yyyy-MM-dd}";
+        var responseHttp = await repository.GetAsync<List<CalendarioEventoDto>>(url);
+
+        if (responseHttp.Error)
+        {
+            var mensajeError = await responseHttp.GetErrorMessageAsync();
+            await swal.FireAsync("Error", $"No se pudieron cargar los eventos del calendario: {mensajeError}", SweetAlertIcon.Error);
+            eventosDelCalendario = new List<CalendarioEventoDto>();
+        }
+        else
+        {
+            eventosDelCalendario = responseHttp.Response ?? new List<CalendarioEventoDto>();
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private string GetEventColorClass(string? tipoEvento)
+    {
+        return tipoEvento?.ToLower() switch
+        {
+            "ingreso" => "border-success",
+            "egreso" => "border-danger",
+            "recordatorio" => "border-warning",
+            "meta" => "border-info",
+            _ => "border-secondary",
+        };
+    }
+
+    private string GetMontoColorClass(string? tipoEvento)
+    {
+        return tipoEvento?.ToLower() switch
+        {
+            "ingreso" => "text-success",
+            "egreso" => "text-danger",
+            _ => "text-dark",
+        };
+    }
+}

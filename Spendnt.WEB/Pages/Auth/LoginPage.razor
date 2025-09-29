@@ -1,0 +1,150 @@
+﻿@page "/login"
+
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Collections.Generic
+@using Spendnt.Shared.DTOs
+@using Spendnt.WEB.Auth
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILoginService LoginService
+@inject SweetAlertService Swal
+
+<PageTitle>Iniciar Sesión - Spend'nt</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión en Spend'nt</h3>
+                </div>
+                <div class="card-body p-4">
+                    <AuthorizeView>
+                        <Authorized>
+                            @{
+                                var userNameForDisplay = context.User.Identity?.Name;
+                            }
+                            <p class="text-center">Ya has iniciado sesión como @userNameForDisplay.</p>
+                            <div class="text-center">
+                                <a href="/" class="btn btn-outline-primary">Ir a Inicio</a>
+                            </div>
+                        </Authorized>
+                        <NotAuthorized>
+                            <EditForm Model="loginModel" OnValidSubmit="HandleLogin" Context="editFormContext">
+                                <DataAnnotationsValidator />
+
+                                <div class="mb-3 form-floating">
+                                    <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="tu@email.com" />
+                                    <label for="email"><i class="bi bi-envelope-fill me-2"></i>Correo Electrónico</label>
+                                    <ValidationMessage For="@(() => loginModel.Email)" />
+                                </div>
+
+                                <div class="mb-3 form-floating">
+                                    <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Contraseña" />
+                                    <label for="password"><i class="bi bi-key-fill me-2"></i>Contraseña</label>
+                                    <ValidationMessage For="@(() => loginModel.Password)" />
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary btn-lg" disabled="@isProcessing">
+                                        @if (isProcessing)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            <span> Ingresando...</span>
+                                        }
+                                        else
+                                        {
+                                            <span><i class="bi bi-door-open-fill me-2"></i>Ingresar</span>
+                                        }
+                                    </button>
+                                </div>
+                            </EditForm>
+                            <hr class="my-4">
+                            <div class="text-center">
+                                <p>
+                                    ¿No tienes una cuenta? <a href="/register">Regístrate aquí</a>
+                                </p>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserLoginDto loginModel = new UserLoginDto();
+    private string? errorMessage;
+    private bool isProcessing = false;
+
+    private async Task HandleLogin()
+    {
+        isProcessing = true;
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var loginResult = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
+                if (loginResult != null && !string.IsNullOrEmpty(loginResult.Token))
+                {
+                    await LoginService.LoginAsync(loginResult.Token);
+                    NavigationManager.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = "Respuesta de login inválida del servidor.";
+                    await Swal.FireAsync("Error de Login", errorMessage, SweetAlertIcon.Error);
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ErrorResponseDto>(errorContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    errorMessage = errorResponse?.Message ?? "Credenciales incorrectas o error desconocido.";
+                }
+                catch
+                {
+                    errorMessage = $"Error: {response.ReasonPhrase} ({(int)response.StatusCode})";
+                }
+                await Swal.FireAsync("Error de Login", errorMessage, SweetAlertIcon.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocurrió un error inesperado: {ex.Message}";
+            await Swal.FireAsync("Error Inesperado", errorMessage, SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    public class LoginResponseDto
+    {
+        [JsonPropertyName("token")]
+        public string Token { get; set; } = string.Empty;
+        [JsonPropertyName("expiration")]
+        public DateTime Expiration { get; set; }
+    }
+
+    public class ErrorResponseDto
+    {
+        public string? Message { get; set; }
+        public IEnumerable<string>? Errors { get; set; }
+    }
+}

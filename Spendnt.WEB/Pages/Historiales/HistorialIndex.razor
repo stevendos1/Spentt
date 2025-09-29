@@ -1,0 +1,147 @@
+﻿@page "/historiales"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using Spendnt.WEB.Shared
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject IJSRuntime js
+@inject SweetAlertService Swal
+
+<h3>Historial de Transacciones</h3>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center my-3">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Cargando historial...</span>
+        </div>
+    </div>
+}
+else if (loadFailed)
+{
+    <div class="alert alert-danger" role="alert">Error al cargar el historial. Intenta recargar la página.</div>
+}
+else if (historiales == null || !historiales.Any())
+{
+    <div class="alert alert-info" role="alert">
+        No hay movimientos registrados en el historial.
+      
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <a class="btn btn-primary" href="/historiales/create">Registrar Transacción Manual</a>
+    </div>
+    <table class="table table-striped table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Categoría</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in historiales.OrderByDescending(h => h.Fecha))
+            {
+                <tr class="@(item.Tipo?.ToLower() == "ingreso" ? "table-success-light" : item.Tipo?.ToLower() == "egreso" ? "table-danger-light" : "")">
+                    <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
+                    <td class="text-capitalize">@item.Tipo</td>
+                    <td>@item.Descripcion</td>
+                    <td>@item.Categoria?.Nombre</td>
+                    <td class="@(item.Tipo?.ToLower() == "ingreso" ? "text-success" : item.Tipo?.ToLower() == "egreso" ? "text-danger" : "") fw-bold">
+                        @item.Monto.ToString("C")
+                    </td>
+                    <td>
+                        <a class="btn btn-warning btn-sm me-1" href=$"/historiales/edit/{item.Id}" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                        <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(item.Id)" title="Borrar"><i class="bi bi-trash3-fill"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Historial>? historiales;
+    private bool isLoading = true;
+    private bool loadFailed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistorial();
+    }
+
+    private async Task LoadHistorial()
+    {
+        isLoading = true;
+        loadFailed = false;
+        StateHasChanged();
+        try
+        {
+            var responseHttp = await repository.GetAsync<List<Historial>>("api/Historiales");
+            if (responseHttp.Error)
+            {
+                loadFailed = true;
+                await Swal.FireAsync("Error", $"No se pudo cargar el historial: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+            }
+            else
+            {
+                historiales = responseHttp.Response ?? new List<Historial>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            loadFailed = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            await Swal.FireAsync("Error", $"Error inesperado al cargar el historial: {ex.Message}", SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Eliminar(int id)
+    {
+        var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "¿Estás seguro?",
+                Text = "No podrás revertir esta acción.",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Sí, eliminar",
+                CancelButtonText = "Cancelar"
+            });
+
+        if (!result.IsConfirmed)
+        {
+            return;
+        }
+
+        var responseHttp = await repository.DeleteAsync($"api/Historiales/{id}");
+        if (responseHttp.Error)
+        {
+            await Swal.FireAsync("Error", $"No se pudo eliminar el registro del historial: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            await Swal.FireAsync("Eliminado", "El registro del historial ha sido eliminado.", SweetAlertIcon.Success);
+            await LoadHistorial();
+        }
+    }
+}

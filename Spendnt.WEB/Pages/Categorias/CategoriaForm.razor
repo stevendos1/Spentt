@@ -1,0 +1,28 @@
+﻿
+@using System.ComponentModel.DataAnnotations
+@using Spendnt.Shared.Entities
+
+<EditForm Model="Model" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+  
+
+    <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <InputText class="form-control" @bind-Value="Model.Nombre" />
+        <ValidationMessage For="@(() => Model.Nombre)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Descripción (Opcional)</label>
+        <InputTextArea class="form-control" @bind-Value="Model.Descripcion" />
+        <ValidationMessage For="@(() => Model.Descripcion)" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Guardar</button>
+ 
+</EditForm>
+
+@code {
+    [Parameter] public Categoria Model { get; set; } = new();
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+}

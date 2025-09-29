@@ -1,0 +1,197 @@
+﻿@page "/MetasAhorro"
+@attribute [Authorize]
+
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using Spendnt.WEB.Shared
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Spendnt.WEB.Auth
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService swal
+
+<h1>Metas de Ahorro</h1>
+
+<div class="mb-3">
+    <a class="btn btn-primary" href="/MetasAhorro/create"><i class="bi bi-plus-circle-fill"></i> Registrar Nueva Meta</a>
+</div>
+
+<GenericList MyList="listaMetasAhorro">
+    <Loading>
+        <div class="d-flex justify-content-center my-3">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando metas...</span>
+            </div>
+        </div>
+    </Loading>
+    <NoRecords>
+        <div class="alert alert-info" role="alert">
+            Aún no hay metas de ahorro registradas. ¡Comienza <a href="/MetasAhorro/create" class="alert-link">agregando una nueva</a>!
+        </div>
+    </NoRecords>
+    <Body>
+        <table class="table table-striped table-hover shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Monto Objetivo</th>
+                    <th>Monto Actual</th>
+                    <th>Progreso</th>
+                    <th>Fecha Objetivo</th>
+                    <th>Completada</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var metaItem in listaMetasAhorro!)
+                {
+                    <tr>
+                        <td>@metaItem.Nombre</td>
+                        <td>@metaItem.MontoObjetivo.ToString("C")</td>
+                        <td>@metaItem.MontoActual.ToString("C")</td>
+                        <td>
+                            @{
+                                var progreso = metaItem.MontoObjetivo > 0 ? (metaItem.MontoActual / metaItem.MontoObjetivo) * 100 : 0;
+                                progreso = Math.Min(progreso, 100);
+                            }
+                            <div class="progress">
+                                <div class="progress-bar @(metaItem.EstaCompletada ? "bg-success" : "bg-info")" role="progressbar" style="width: @progreso%;" aria-valuenow="@progreso" aria-valuemin="0" aria-valuemax="100">@progreso.ToString("0")%</div>
+                            </div>
+                        </td>
+                        <td>@(metaItem.FechaObjetivo?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                        <td>@(metaItem.EstaCompletada ? "Sí" : "No")</td>
+                        <td>
+                            <a href="/MetasAhorro/edit/@metaItem.Id" class="btn btn-warning btn-sm me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                            <button class="btn btn-danger btn-sm me-1" @onclick=@(() => DeleteAsync(metaItem)) title="Borrar"><i class="bi bi-trash3-fill"></i></button>
+                            <button class="btn btn-success btn-sm" @onclick=@(() => ContribuirAsync(metaItem)) title="Contribuir/Retirar"><i class="bi bi-cash-coin"></i></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Body>
+</GenericList>
+
+@code {
+    private List<MetaAhorro>? listaMetasAhorro;
+    private bool isLoading = true;
+    private bool loadFailed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMetasAhorro();
+    }
+
+    private async Task LoadMetasAhorro()
+    {
+        isLoading = true;
+        loadFailed = false;
+        StateHasChanged();
+        try
+        {
+            var responseHttp = await repository.GetAsync<List<MetaAhorro>>("/api/MetasAhorro");
+            if (responseHttp.Error)
+            {
+                loadFailed = true;
+                var mensajeError = await responseHttp.GetErrorMessageAsync();
+                await swal.FireAsync("Error", $"No se pudieron cargar las metas de ahorro: {mensajeError}", SweetAlertIcon.Error);
+                listaMetasAhorro = new List<MetaAhorro>();
+            }
+            else
+            {
+                listaMetasAhorro = responseHttp.Response ?? new List<MetaAhorro>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            loadFailed = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            await swal.FireAsync("Error", $"Error inesperado al cargar las metas de ahorro: {ex.Message}", SweetAlertIcon.Error);
+            listaMetasAhorro = new List<MetaAhorro>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteAsync(MetaAhorro metaParaBorrar)
+    {
+        var result = await swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = $"¿Estás seguro de que quieres borrar la meta '{metaParaBorrar.Nombre}'?",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Sí, borrar",
+                CancelButtonText = "Cancelar"
+            });
+
+        if (!result.IsConfirmed)
+        {
+            return;
+        }
+
+        var responseHTTP = await repository.DeleteAsync($"api/MetasAhorro/{metaParaBorrar.Id}");
+        if (responseHTTP.Error)
+        {
+            var mensajeError = await responseHTTP.GetErrorMessageAsync();
+            await swal.FireAsync("Error", $"No se pudo borrar la meta: {mensajeError}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            await swal.FireAsync("Eliminada", "La meta de ahorro ha sido eliminada.", SweetAlertIcon.Success);
+            await LoadMetasAhorro();
+        }
+    }
+
+    private Task<string?> ValidateMontoInput(string value)
+    {
+        if (string.IsNullOrEmpty(value) || !decimal.TryParse(value, out _))
+        {
+            return Task.FromResult<string?>("Por favor, ingresa un monto válido.");
+        }
+        return Task.FromResult<string?>(null);
+    }
+
+    private async Task ContribuirAsync(MetaAhorro meta)
+    {
+        var result = await swal.FireAsync(new SweetAlertOptions
+            {
+                Title = $"Contribuir/Retirar de '{meta.Nombre}'",
+                Text = $"Monto actual: {meta.MontoActual:C}. Objetivo: {meta.MontoObjetivo:C}",
+                Input = SweetAlertInputType.Number,
+                InputValue = "0.00",
+                InputAttributes = new Dictionary<string, string> { { "step", "0.01" } },
+                ShowCancelButton = true,
+                ConfirmButtonText = "Aceptar",
+                CancelButtonText = "Cancelar",
+                InputValidator = new InputValidatorCallback(async (value) => await ValidateMontoInput(value), this)
+            });
+
+        if (result.Value != null && decimal.TryParse(result.Value.ToString(), out decimal monto))
+        {
+            if (monto == 0) return;
+
+            var responseHttp = await repository.PostAsync($"/api/MetasAhorro/{meta.Id}/contribuir", monto);
+            if (responseHttp.Error)
+            {
+                var mensajeError = await responseHttp.GetErrorMessageAsync();
+                await swal.FireAsync("Error", $"No se pudo actualizar la meta: {mensajeError}", SweetAlertIcon.Error);
+            }
+            else
+            {
+                await swal.FireAsync("Actualizado", $"Se {(monto > 0 ? "contribuyó con" : "retiró")} {Math.Abs(monto):C} de la meta.", SweetAlertIcon.Success);
+                await LoadMetasAhorro();
+            }
+        }
+    }
+}

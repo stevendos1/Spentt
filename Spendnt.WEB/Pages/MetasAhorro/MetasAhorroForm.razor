@@ -1,0 +1,77 @@
+﻿@using Spendnt.Shared.Entities
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="MetaAhorro" OnSubmit="OnSubmit">
+    <DataAnnotationsValidator />
+    @* <ValidationSummary /> *@
+
+    <div class="mb-3">
+        <label class="form-label">Nombre de la Meta</label>
+        <div>
+            <InputText class="form-control" @bind-Value="MetaAhorro.Nombre" />
+            <ValidationMessage For="@(() => MetaAhorro.Nombre)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Descripción (Opcional)</label>
+        <div>
+            <InputTextArea class="form-control" @bind-Value="MetaAhorro.Descripcion" />
+            <ValidationMessage For="@(() => MetaAhorro.Descripcion)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Monto Objetivo</label>
+        <div>
+            <InputNumber class="form-control" @bind-Value="MetaAhorro.MontoObjetivo" />
+            <ValidationMessage For="@(() => MetaAhorro.MontoObjetivo)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Monto Actual Ahorrado</label>
+        <div>
+            <InputNumber class="form-control" @bind-Value="MetaAhorro.MontoActual" />
+            <ValidationMessage For="@(() => MetaAhorro.MontoActual)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Fecha Objetivo (Opcional)</label>
+        <div>
+            <InputDate class="form-control" @bind-Value="MetaAhorro.FechaObjetivo" />
+            <ValidationMessage For="@(() => MetaAhorro.FechaObjetivo)" />
+        </div>
+    </div>
+
+    <div class="mb-3 form-check">
+        <InputCheckbox class="form-check-input" id="estaCompletada" @bind-Value="MetaAhorro.EstaCompletada" />
+        <label class="form-check-label" for="estaCompletada">¿Meta Completada?</label>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <button class="btn btn-success" type="button" @onclick="ReturnAction">Regresar</button>
+</EditForm>
+
+@code {
+    [EditorRequired]
+    [Parameter]
+    public MetaAhorro MetaAhorro { get; set; } = new();
+
+    [EditorRequired]
+    [Parameter]
+    public EventCallback<EditContext> OnSubmit { get; set; }
+
+    [EditorRequired]
+    [Parameter]
+    public EventCallback ReturnAction { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (MetaAhorro != null && MetaAhorro.FechaCreacion == DateTime.MinValue)
+        {
+            MetaAhorro.FechaCreacion = DateTime.UtcNow;
+        }
+    }
+}

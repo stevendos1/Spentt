@@ -1,0 +1,138 @@
+﻿@page "/recordatorios"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using Spendnt.WEB.Shared
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject IJSRuntime js
+@inject SweetAlertService Swal
+
+<h3>Recordatorios de Gasto</h3>
+
+<div class="mb-3">
+    <a class="btn btn-primary" href="/recordatorios/create"><i class="bi bi-alarm-fill"></i> Crear Nuevo Recordatorio</a>
+</div>
+
+<GenericList MyList="listaRecordatorios">
+    <Loading>
+        <div class="d-flex justify-content-center my-3">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando recordatorios...</span>
+            </div>
+        </div>
+    </Loading>
+    <NoRecords>
+        <div class="alert alert-info" role="alert">
+            No hay recordatorios de gasto registrados. ¡<a href="/recordatorios/create" class="alert-link">Crea uno nuevo</a>!
+        </div>
+    </NoRecords>
+    <Body>
+        <table class="table table-striped table-hover shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Título</th>
+                    <th>Fecha Programada</th>
+                    <th>Monto Estimado</th>
+                    <th>Notas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var recordatorio in listaRecordatorios!.OrderBy(r => r.FechaProgramada))
+                {
+                    <tr>
+                        <td>@recordatorio.Titulo</td>
+                        <td>@recordatorio.FechaProgramada.ToString("dd/MM/yyyy")</td>
+                        <td>@recordatorio.MontoEstimado.ToString("C")</td>
+                        <td>@recordatorio.Notas</td>
+                        <td>
+                            <a class="btn btn-warning btn-sm me-1" href=$"/recordatorios/edit/{recordatorio.Id}" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                            <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(recordatorio.Id, recordatorio.Titulo)" title="Borrar"><i class="bi bi-trash3-fill"></i></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Body>
+</GenericList>
+
+@code {
+    private List<RecordatorioGasto>? listaRecordatorios;
+    private bool isLoading = true;
+    private bool loadFailed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecordatorios();
+    }
+
+    private async Task LoadRecordatorios()
+    {
+        isLoading = true;
+        loadFailed = false;
+        StateHasChanged();
+        try
+        {
+            var responseHttp = await repository.GetAsync<List<RecordatorioGasto>>("api/RecordatoriosGasto");
+            if (responseHttp.Error)
+            {
+                loadFailed = true;
+                await Swal.FireAsync("Error", $"No se pudieron cargar los recordatorios: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+            }
+            else
+            {
+                listaRecordatorios = responseHttp.Response ?? new List<RecordatorioGasto>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            loadFailed = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            await Swal.FireAsync("Error", $"Error inesperado al cargar recordatorios: {ex.Message}", SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Eliminar(int id, string titulo)
+    {
+        var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "¿Estás seguro?",
+                Text = $"Quieres eliminar el recordatorio: '{titulo}'?",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Sí, eliminar",
+                CancelButtonText = "Cancelar"
+            });
+
+        if (!result.IsConfirmed)
+        {
+            return;
+        }
+
+        var responseHttp = await repository.DeleteAsync($"api/RecordatoriosGasto/{id}");
+        if (responseHttp.Error)
+        {
+            await Swal.FireAsync("Error", $"No se pudo eliminar el recordatorio: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            await Swal.FireAsync("Eliminado", "El recordatorio ha sido eliminado.", SweetAlertIcon.Success);
+            await LoadRecordatorios();
+        }
+    }
+}

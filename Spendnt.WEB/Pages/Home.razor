@@ -1,0 +1,118 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Spend'nt - Inicio</PageTitle>
+
+<div class="container mt-4">
+    <AuthorizeView>
+        <Authorized>
+            @{
+                var userName = context.User.Identity?.Name;
+                var firstNameClaim = context.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.GivenName)?.Value;
+                var displayName = !string.IsNullOrWhiteSpace(firstNameClaim) ? firstNameClaim : userName;
+            }
+            <div class="text-center mb-4">
+                <h1 class="display-4">¡Bienvenido de nuevo, @displayName!</h1>
+                <p class="lead">Spend'nt está listo para ayudarte a gestionar tus finanzas.</p>
+            </div>
+
+            <div class="row g-3 justify-content-center">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-wallet2 fs-1 text-primary mb-3"></i>
+                            <h5 class="card-title">Ver mi Saldo</h5>
+                            <p class="card-text">Consulta el estado actual de tus finanzas.</p>
+                            <a href="/Saldo" class="btn btn-primary">Ir a Saldo</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-plus-circle-fill fs-1 text-success mb-3"></i>
+                            <h5 class="card-title">Registrar Ingreso</h5>
+                            <p class="card-text">Añade tus nuevas fuentes de ingreso.</p>
+                            <a href="/Ingresos/create" class="btn btn-success">Nuevo Ingreso</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-dash-circle-fill fs-1 text-danger mb-3"></i>
+                            <h5 class="card-title">Registrar Egreso</h5>
+                            <p class="card-text">Lleva un control de tus gastos.</p>
+                            <a href="/Egresos/create" class="btn btn-danger">Nuevo Egreso</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 justify-content-center mt-3">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-piggy-bank-fill fs-1 text-info mb-3"></i>
+                            <h5 class="card-title">Metas de Ahorro</h5>
+                            <p class="card-text">Define y sigue tus objetivos de ahorro.</p>
+                            <a href="/MetasAhorro" class="btn btn-info">Ver Metas</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-calendar-event-fill fs-1 text-warning mb-3"></i>
+                            <h5 class="card-title">Calendario Financiero</h5>
+                            <p class="card-text">Visualiza tus eventos financieros.</p>
+                            <a href="/calendario" class="btn btn-warning">Ver Calendario</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+                <div class="container-fluid py-5 text-center">
+                    <i class="bi bi-currency-exchange display-1 text-primary mb-4"></i>
+                    <h1 class="display-4 fw-bold">Bienvenido a Spend'nt</h1>
+                    <p class="fs-4 col-md-10 mx-auto">Tu aliado inteligente para tomar el control de tus finanzas personales. Registra tus ingresos, gastos, establece metas de ahorro y visualiza tu progreso de forma sencilla.</p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                        <a href="login" class="btn btn-primary btn-lg px-4 gap-3">Iniciar Sesión</a>
+                        <a href="register" class="btn btn-outline-secondary btn-lg px-4">Registrarse</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row text-center g-4 mt-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0">
+                        <div class="card-body">
+                            <i class="bi bi-graph-up-arrow fs-1 text-success mb-3"></i>
+                            <h5 class="card-title">Control Total</h5>
+                            <p class="card-text">Registra cada movimiento y entiende a dónde va tu dinero.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0">
+                        <div class="card-body">
+                            <i class="bi bi-bullseye fs-1 text-info mb-3"></i>
+                            <h5 class="card-title">Alcanza tus Metas</h5>
+                            <p class="card-text">Define objetivos de ahorro y observa cómo te acercas a ellos.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0">
+                        <div class="card-body">
+                            <i class="bi bi-calendar-check fs-1 text-warning mb-3"></i>
+                            <h5 class="card-title">Planifica tu Futuro</h5>
+                            <p class="card-text">Con recordatorios y un calendario financiero integrado.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>

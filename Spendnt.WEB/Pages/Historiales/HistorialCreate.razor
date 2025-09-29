@@ -1,0 +1,75 @@
+﻿@page "/historiales/create"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService Swal
+
+<h3>Registrar Transacción en Historial</h3>
+
+<HistorialForm Historial="historialModel" Categorias="listaCategorias" OnValidSubmit="Guardar" />
+
+@code {
+    private Historial historialModel = new();
+    private List<Categoria> listaCategorias = new();
+    private bool isLoadingCategorias = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (historialModel.Fecha == DateTime.MinValue)
+        {
+            historialModel.Fecha = DateTime.Today;
+        }
+        await CargarCategorias();
+    }
+
+    private async Task CargarCategorias()
+    {
+        isLoadingCategorias = true;
+        try
+        {
+            var responseHttp = await repository.GetAsync<List<Categoria>>("/api/Categorias");
+            if (responseHttp.Error)
+            {
+                var mensaje = await responseHttp.GetErrorMessageAsync();
+                await Swal.FireAsync("Error", $"No se pudieron cargar las categorías: {mensaje}", SweetAlertIcon.Error);
+            }
+            else
+            {
+                listaCategorias = responseHttp.Response ?? new List<Categoria>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"Error inesperado al cargar categorías: {ex.Message}", SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isLoadingCategorias = false;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        var response = await repository.PostAsync("/api/Historiales", historialModel);
+        if (response.Error)
+        {
+            var mensaje = await response.GetErrorMessageAsync();
+            await Swal.FireAsync("Error", $"No se pudo guardar el historial: {mensaje}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            navigationManager.NavigateTo("/historiales");
+        }
+    }
+}
