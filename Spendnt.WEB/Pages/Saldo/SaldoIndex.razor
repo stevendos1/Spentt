@@ -1,0 +1,145 @@
+﻿@page "/Saldo"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using CurrieTechnologies.Razor.SweetAlert2
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService Swal
+
+<h1>Saldo</h1>
+
+@if (isLoadingSaldo)
+{
+    <div class="d-flex justify-content-center my-3">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Cargando saldo...</span>
+        </div>
+    </div>
+}
+else if (errorAlCargar)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        No se pudo cargar la información del saldo. Por favor, intente más tarde.
+        <br />
+        <small>Verifica la consola del navegador (F12) y la salida de la API para más detalles.</small>
+    </div>
+}
+else if (saldoActual != null)
+{
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-wallet2 me-2"></i> Estado Actual del Saldo</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <p class="fw-bold fs-5 text-success">Total de Ingresos</p>
+                            <p class="text-success fs-3">@saldoActual.TotalIngresos.ToString("C")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <p class="fw-bold fs-5 text-danger">Total de Egresos</p>
+                            <p class="text-danger fs-3">@saldoActual.TotalEgresos.ToString("C")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center h-100 bg-light">
+                        <div class="card-body">
+                            <p class="fw-bold fs-5 text-primary">Saldo Disponible</p>
+                            <p class="text-primary fs-2"><strong>@saldoActual.TotalSaldoCalculado.ToString("C")</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (saldoActual.TotalSaldo != saldoActual.TotalSaldoCalculado)
+            {
+                <div class="alert alert-info mt-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i> Se ha establecido un saldo manual de: <strong>@saldoActual.TotalSaldo.ToString("C")</strong>. El saldo calculado es @saldoActual.TotalSaldoCalculado.ToString("C").
+                </div>
+            }
+        </div>
+        <div class="card-footer text-muted d-flex justify-content-between align-items-center">
+            <small>Última actualización al cargar esta página.</small>
+            <div>
+                <a href="/Saldo/edit/@saldoActual.Id" class="btn btn-sm btn-outline-warning me-2"><i class="bi bi-pencil-square me-1"></i> Editar Saldo Manual</a>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="LoadSaldo" disabled="@isLoadingSaldo"><i class="bi bi-arrow-clockwise me-1"></i> Refrescar</button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        No hay información de saldo principal disponible para tu usuario.
+        Este saldo se crea automáticamente al registrarte o con tu primera transacción.
+        Si eres un nuevo usuario, intenta registrar un ingreso o egreso.
+    </div>
+}
+
+@code {
+    private Saldo? saldoActual;
+    private bool errorAlCargar = false;
+    private bool isLoadingSaldo = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSaldo();
+    }
+
+    private async Task LoadSaldo()
+    {
+        isLoadingSaldo = true;
+        saldoActual = null;
+        errorAlCargar = false;
+        StateHasChanged();
+
+        try
+        {
+            var responseHttp = await repository.GetAsync<Saldo>("/api/Saldo/actual");
+
+            if (responseHttp.Error)
+            {
+                errorAlCargar = true;
+                var mensajeError = await responseHttp.GetErrorMessageAsync();
+                Console.WriteLine($"Error cargando saldo: {mensajeError}. Código HTTP: {responseHttp.HttpResponseMessage.StatusCode}");
+                if (responseHttp.HttpResponseMessage.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    await Swal.FireAsync("Error", $"No se pudo cargar el saldo: {mensajeError}", SweetAlertIcon.Error);
+                }
+            }
+            else
+            {
+                saldoActual = responseHttp.Response;
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            errorAlCargar = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            errorAlCargar = true;
+            Console.WriteLine($"Error inesperado cargando saldo: {ex.Message}");
+            await Swal.FireAsync("Error", "Ocurrió un error inesperado al cargar el saldo.", SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isLoadingSaldo = false;
+            StateHasChanged();
+        }
+    }
+}

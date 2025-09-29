@@ -1,0 +1,47 @@
+﻿@using Spendnt.Shared.Entities
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="Recordatorio" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    @* <ValidationSummary /> *@
+
+    <div class="mb-3">
+        <label class="form-label">Título</label>
+        <InputText class="form-control" @bind-Value="Recordatorio.Titulo" />
+        <ValidationMessage For="@(() => Recordatorio.Titulo)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Fecha Programada</label>
+        <InputDate class="form-control" @bind-Value="Recordatorio.FechaProgramada" />
+        <ValidationMessage For="@(() => Recordatorio.FechaProgramada)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Monto Estimado</label>
+        <InputNumber class="form-control" @bind-Value="Recordatorio.MontoEstimado" />
+        <ValidationMessage For="@(() => Recordatorio.MontoEstimado)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Notas (Opcional)</label>
+        <InputTextArea class="form-control" @bind-Value="Recordatorio.Notas" rows="3" />
+        <ValidationMessage For="@(() => Recordatorio.Notas)" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Guardar Recordatorio</button>
+   
+</EditForm>
+
+@code {
+    [Parameter] public RecordatorioGasto Recordatorio { get; set; } = new();
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Recordatorio != null && Recordatorio.FechaProgramada == DateTime.MinValue)
+        {
+            Recordatorio.FechaProgramada = DateTime.Today.AddDays(7);
+        }
+    }
+}

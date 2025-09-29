@@ -1,0 +1,48 @@
+﻿@page "/Saldo/create"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+
+<h3>Crear/Inicializar Saldo</h3>
+<p class="text-muted">Nota: Generalmente, el saldo principal se crea automáticamente al registrar un nuevo usuario o con la primera transacción. Esta página podría ser para casos especiales o si se permite más de un saldo por usuario (lo cual no es el modelo actual).</p>
+
+@if (saldoModel == null)
+{
+    <p><em>Inicializando...</em></p>
+}
+else
+{
+    <SaldoForm @ref="saldoForm" Saldo="saldoModel" OnSubmit="HandleCreate" ReturnAction="Return" />
+}
+
+@code {
+    private Saldo saldoModel = new();
+    private SaldoForm? saldoForm;
+
+    private async Task HandleCreate()
+    {
+        var responseHttp = await repository.PostAsync("/api/Saldo", saldoModel);
+        if (responseHttp.Error)
+        {
+            var mensaje = await responseHttp.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", $"No se pudo crear el saldo: {mensaje}", SweetAlertIcon.Error);
+            return;
+        }
+
+        await sweetAlertService.FireAsync("Éxito", "Saldo creado/inicializado correctamente.", SweetAlertIcon.Success);
+        navigationManager.NavigateTo("/Saldo");
+    }
+
+    private void Return()
+    {
+        navigationManager.NavigateTo("/Saldo");
+    }
+}

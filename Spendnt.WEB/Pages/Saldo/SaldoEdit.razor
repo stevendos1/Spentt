@@ -1,0 +1,104 @@
+﻿@page "/Saldo/edit/{Id:int}"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject NavigationManager navigationManager
+@inject IRepository repository
+@inject SweetAlertService swal
+
+<h3>Editar Saldo Manual</h3>
+
+@if (saldoModel == null && !loadFailed)
+{
+    <p><em>Cargando saldo...</em></p>
+}
+else if (loadFailed)
+{
+    <div class="alert alert-danger">No se pudo cargar el saldo para editar.</div>
+}
+else
+{
+    <SaldoForm @ref="saldoForm" Saldo="saldoModel" OnSubmit="HandleEdit" ReturnAction="Return" />
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Saldo? saldoModel;
+    private SaldoForm? saldoForm;
+    private bool loadFailed;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+        try
+        {
+            var responseHTTP = await repository.GetAsync<Saldo>($"/api/Saldo/{Id}");
+
+            if (responseHTTP.Error)
+            {
+                loadFailed = true;
+                if (responseHTTP.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    await swal.FireAsync("Error", "Saldo no encontrado.", SweetAlertIcon.Error);
+                    navigationManager.NavigateTo("/Saldo");
+                }
+                else
+                {
+                    var messageError = await responseHTTP.GetErrorMessageAsync();
+                    await swal.FireAsync("Error", messageError, SweetAlertIcon.Error);
+                }
+            }
+            else
+            {
+                saldoModel = responseHTTP.Response;
+                if (saldoModel == null) loadFailed = true;
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            loadFailed = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            await swal.FireAsync("Error", $"Error inesperado al cargar el saldo: {ex.Message}", SweetAlertIcon.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleEdit()
+    {
+        if (saldoModel == null) return;
+
+        var responseHTTP = await repository.PutAsync($"/api/Saldo/{saldoModel.Id}", saldoModel);
+
+        if (responseHTTP.Error)
+        {
+            var mensajeError = await responseHTTP.GetErrorMessageAsync();
+            await swal.FireAsync("Error", $"No se pudo actualizar el saldo: {mensajeError}", SweetAlertIcon.Error);
+        }
+        else
+        {
+            await swal.FireAsync("Actualizado", "El saldo manual ha sido actualizado.", SweetAlertIcon.Success);
+            navigationManager.NavigateTo("/Saldo");
+        }
+    }
+
+    private void Return()
+    {
+        navigationManager.NavigateTo("/Saldo");
+    }
+}

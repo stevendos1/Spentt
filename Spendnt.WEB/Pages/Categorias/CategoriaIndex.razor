@@ -1,0 +1,102 @@
+﻿@page "/categorias"
+@attribute [Authorize]
+
+@using Spendnt.Shared.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication // Para AccessTokenNotAvailableException
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+
+<h3>Categorías</h3>
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="mb-3">
+            <a href="/categorias/create" class="btn btn-primary">Nueva Categoría</a>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (isLoading)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (loadFailed)
+{
+    <div class="alert alert-danger">Error al cargar las categorías. Intenta recargar la página o verifica tu conexión.</div>
+}
+else if (categorias == null || !categorias.Any())
+{
+    <div class="alert alert-info">No hay categorías registradas.</div>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <p>Como administrador, puedes <a href="/categorias/create">crear la primera categoría</a>.</p>
+        </Authorized>
+    </AuthorizeView>
+}
+else
+{
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <th>Acciones</th>
+                    </Authorized>
+                </AuthorizeView>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var categoria in categorias)
+            {
+                <tr>
+                    <td>@categoria.Nombre</td>
+                    <td>@categoria.Descripcion</td>
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <td>
+                                <a class="btn btn-warning btn-sm" href="/categorias/edit/@categoria.Id">Editar</a>
+                            </td>
+                        </Authorized>
+                    </AuthorizeView>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Categoria>? categorias;
+    private bool loadFailed = false;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            categorias = await Http.GetFromJsonAsync<List<Categoria>>("api/categorias");
+            loadFailed = false;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            
+            loadFailed = true; 
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            Console.WriteLine($"Error cargando categorías: {ex.Message}");
+           
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

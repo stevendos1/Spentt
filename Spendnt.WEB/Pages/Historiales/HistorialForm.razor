@@ -1,0 +1,69 @@
+﻿@using Spendnt.Shared.Entities
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="Historial" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    @* <ValidationSummary /> *@
+
+    <div class="mb-3">
+        <label class="form-label">Fecha</label>
+        <InputDate class="form-control" @bind-Value="Historial.Fecha" />
+        <ValidationMessage For="@(() => Historial.Fecha)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Monto</label>
+        <InputNumber class="form-control" @bind-Value="Historial.Monto" />
+        <ValidationMessage For="@(() => Historial.Monto)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Tipo (Ej: Ingreso, Egreso)</label>
+        <InputText class="form-control" @bind-Value="Historial.Tipo" />
+        <ValidationMessage For="@(() => Historial.Tipo)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Descripción (Opcional)</label>
+        <InputTextArea class="form-control" @bind-Value="Historial.Descripcion" />
+        <ValidationMessage For="@(() => Historial.Descripcion)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Categoría</label>
+        <div>
+            @if (Categorias == null || !Categorias.Any())
+            {
+                <p><em>Cargando categorías...</em></p>
+            }
+            else
+            {
+                <InputSelect class="form-control" @bind-Value="Historial.CategoriaId">
+                    <option value="0">-- Seleccione una categoría --</option>
+                    @foreach (var cat in Categorias)
+                    {
+                        <option value="@cat.Id">@cat.Nombre</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => Historial.CategoriaId)" />
+            }
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Guardar</button>
+  
+</EditForm>
+
+@code {
+    [Parameter] public Historial Historial { get; set; } = new();
+    [Parameter] public List<Categoria>? Categorias { get; set; }
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Historial != null && Historial.Fecha == DateTime.MinValue)
+        {
+            Historial.Fecha = DateTime.Today;
+        }
+    }
+}

@@ -1,0 +1,52 @@
+﻿@page "/MetasAhorro/create"
+@attribute [Authorize]
+
+@using Spendnt.Shared.DTOs 
+@using Spendnt.Shared.Entities 
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+
+<h3>Crear Nueva Meta de Ahorro</h3>
+
+<MetasAhorroForm @ref="metaAhorroForm" MetaAhorro="metaAhorroDisplayModel" OnSubmit="Create" ReturnAction="Return" />
+
+
+@code {
+    private MetaAhorro metaAhorroDisplayModel = new(); 
+    private MetasAhorroForm? metaAhorroForm;
+
+
+    private async Task Create()
+    {
+        var createDto = new MetaAhorroCreateDto
+            {
+                Nombre = metaAhorroDisplayModel.Nombre,
+                Descripcion = metaAhorroDisplayModel.Descripcion,
+                MontoObjetivo = metaAhorroDisplayModel.MontoObjetivo,
+                MontoActual = metaAhorroDisplayModel.MontoActual,
+                FechaObjetivo = metaAhorroDisplayModel.FechaObjetivo,
+                EstaCompletada = metaAhorroDisplayModel.EstaCompletada
+            };
+
+        var responseHttp = await repository.PostAsync("/api/MetasAhorro", createDto); 
+        if (responseHttp.Error)
+        {
+            var mensaje = await responseHttp.GetErrorMessageAsync();
+            var errorDetails = responseHttp.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.BadRequest && !string.IsNullOrWhiteSpace(mensaje) ? $": {mensaje}" : "";
+            await sweetAlertService.FireAsync("Error", $"No se pudo crear la meta de ahorro{errorDetails}", SweetAlertIcon.Error);
+            return;
+        }
+        navigationManager.NavigateTo("/MetasAhorro");
+    }
+
+    private void Return()
+    {
+        navigationManager.NavigateTo("/MetasAhorro");
+    }
+}
