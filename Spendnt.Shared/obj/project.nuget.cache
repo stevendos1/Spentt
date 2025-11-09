@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "WwInGfZpWAo=",
+  "dgSpecHash": "HN82+ufLADM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\Spendnt.Shared.csproj",
+  "projectFilePath": "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\Spendnt.Shared.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\steve\\.nuget\\packages\\microsoft.aspnetcore.cryptography.internal\\9.0.5\\microsoft.aspnetcore.cryptography.internal.9.0.5.nupkg.sha512",
     "C:\\Users\\steve\\.nuget\\packages\\microsoft.aspnetcore.cryptography.keyderivation\\9.0.5\\microsoft.aspnetcore.cryptography.keyderivation.9.0.5.nupkg.sha512",

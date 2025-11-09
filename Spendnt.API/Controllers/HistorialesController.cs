@@ -1,13 +1,15 @@
 ﻿// Spendnt.API/Controllers/HistorialesController.cs
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Spendnt.API.Data;
-using Spendnt.Shared.Entities;
+using Spendnt.API.Application.Interfaces;
+using Spendnt.Shared.DTOs.Historial;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Spendnt.API.Controllers
 {
@@ -16,105 +18,82 @@ namespace Spendnt.API.Controllers
     [Route("api/[controller]")]
     public class HistorialesController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly IHistorialService _historialService;
 
-        public HistorialesController(DataContext context)
+        public HistorialesController(IHistorialService historialService)
         {
-            _context = context;
+            _historialService = historialService;
         }
 
-        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+        private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Historial>>> GetHistoriales()
+        public async Task<ActionResult<IEnumerable<HistorialDto>>> GetHistoriales()
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var saldoUsuarioId = await _context.Saldo
-                                        .Where(s => s.UserId == userId)
-                                        .Select(s => s.Id)
-                                        .FirstOrDefaultAsync();
-            if (saldoUsuarioId == 0)
+            if (string.IsNullOrEmpty(userId))
             {
-                return Ok(new List<Historial>());
+                return Unauthorized();
             }
 
-            return await _context.Historiales
-                                 .Where(h => h.SaldoId == saldoUsuarioId)
-                                 .Include(h => h.Categoria)
-                                 .OrderByDescending(h => h.Fecha)
-                                 .ToListAsync();
+            var historiales = await _historialService.GetAsync(userId);
+            return Ok(historiales);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Historial>> GetHistorial(int id)
+        public async Task<ActionResult<HistorialDto>> GetHistorial(int id)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var historial = await _context.Historiales
-                                        .Include(h => h.Categoria)
-                                        .FirstOrDefaultAsync(h => h.Id == id && h.Saldo.UserId == userId);
-
+            var historial = await _historialService.GetByIdAsync(userId, id);
             if (historial == null)
             {
                 return NotFound();
             }
-            return historial;
+            return Ok(historial);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Historial>> PostHistorial(Historial historial)
+        public async Task<ActionResult<HistorialDto>> PostHistorial(HistorialCreateDto historialDto)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var saldoUsuario = await _context.Saldo.FirstOrDefaultAsync(s => s.UserId == userId);
-            if (saldoUsuario == null)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest("No se encontró un saldo principal para el usuario.");
+                return Unauthorized();
             }
-            historial.SaldoId = saldoUsuario.Id;
 
-            _context.Historiales.Add(historial);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetHistorial), new { id = historial.Id }, historial);
+            try
+            {
+                var created = await _historialService.CreateAsync(userId, historialDto);
+                return CreatedAtAction(nameof(GetHistorial), new { id = created.Id }, created);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (System.Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrió un error al guardar el historial.");
+            }
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> PutHistorial(int id, Historial historial)
+        public async Task<IActionResult> PutHistorial(int id, HistorialUpdateDto historialDto)
         {
-            if (id != historial.Id)
-            {
-                return BadRequest();
-            }
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var existingHistorial = await _context.Historiales
-                                                .AsNoTracking()
-                                                .FirstOrDefaultAsync(h => h.Id == id && h.Saldo.UserId == userId);
-            if (existingHistorial == null)
+            var updated = await _historialService.UpdateAsync(userId, id, historialDto);
+            if (!updated)
             {
                 return NotFound("Historial no encontrado o no pertenece al usuario.");
-            }
-            historial.SaldoId = existingHistorial.SaldoId;
-            _context.Entry(historial).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await _context.Historiales.AnyAsync(e => e.Id == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
             }
             return NoContent();
         }
@@ -123,16 +102,16 @@ namespace Spendnt.API.Controllers
         public async Task<IActionResult> DeleteHistorial(int id)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var historial = await _context.Historiales
-                                        .FirstOrDefaultAsync(h => h.Id == id && h.Saldo.UserId == userId);
-            if (historial == null)
+            var deleted = await _historialService.DeleteAsync(userId, id);
+            if (!deleted)
             {
                 return NotFound();
             }
-            _context.Historiales.Remove(historial);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
     }

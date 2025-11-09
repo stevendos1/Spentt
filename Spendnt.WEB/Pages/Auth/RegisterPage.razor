@@ -19,11 +19,12 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-7">
-            <div class="card shadow-lg">
-                <div class="card-header bg-success text-white text-center">
-                    <h3 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Crear Nueva Cuenta en Spend'nt</h3>
+            <div class="card auth-card">
+                <div class="auth-card-header">
+                    <span class="auth-card-kicker">Regístrate</span>
+                    <h3 class="auth-card-title"><span class="bi bi-person-plus"></span> Crear Nueva Cuenta en Spend'nt</h3>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4 p-md-5">
                     <AuthorizeView>
                         <Authorized>
                             @{
@@ -106,7 +107,7 @@
                                 }
 
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-success btn-lg" disabled="@isProcessing">
+                                    <button type="submit" class="btn btn-primary btn-lg" disabled="@isProcessing">
                                         @if (isProcessing)
                                         {
                                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -134,6 +135,7 @@
 </div>
 
 @code {
+#nullable enable
     private UserRegisterDto registerModel = new UserRegisterDto();
     private bool isProcessing = false;
     private List<string> apiErrors = new List<string>();
@@ -249,4 +251,5 @@
         public Dictionary<string, List<string>>? Errors { get; set; }
         public string? Message { get; set; }
     }
+#nullable restore
 }

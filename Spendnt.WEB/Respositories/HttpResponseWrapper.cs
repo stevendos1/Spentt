@@ -1,24 +1,24 @@
 ﻿using System.Net;
 
-
 namespace Spendnt.WEB.Repositories
 {
-    public class HttpResponseWrapper<T>
+#nullable enable
+    public sealed class HttpResponseWrapper<T>
     {
-        public HttpResponseWrapper(T response, bool error, HttpResponseMessage httpResponseMessage)
+        public HttpResponseWrapper(T? response, bool error, HttpResponseMessage httpResponseMessage)
         {
-            Error = error;
             Response = response;
+            Error = error;
             HttpResponseMessage = httpResponseMessage;
         }
 
-        public bool Error { get; set; }
+        public bool Error { get; }
 
-        public T Response { get; set; }
+        public T? Response { get; }
 
-        public HttpResponseMessage HttpResponseMessage { get; set; }
+        public HttpResponseMessage HttpResponseMessage { get; }
 
-        public async Task<string> GetErrorMessageAsync()
+        public async Task<string?> GetErrorMessageAsync()
         {
             if (!Error)
             {

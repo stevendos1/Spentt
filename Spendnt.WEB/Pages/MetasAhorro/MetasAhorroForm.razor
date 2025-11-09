@@ -1,4 +1,4 @@
-﻿@using Spendnt.Shared.Entities
+﻿@using Spendnt.Shared.DTOs.MetaAhorro
 @using System.ComponentModel.DataAnnotations
 
 <EditForm Model="MetaAhorro" OnSubmit="OnSubmit">
@@ -40,7 +40,7 @@
     <div class="mb-3">
         <label class="form-label">Fecha Objetivo (Opcional)</label>
         <div>
-            <InputDate class="form-control" @bind-Value="MetaAhorro.FechaObjetivo" />
+            <InputDate class="form-control" @bind-Value="MetaAhorro.FechaObjetivo" TValue="DateTime?" />
             <ValidationMessage For="@(() => MetaAhorro.FechaObjetivo)" />
         </div>
     </div>
@@ -55,9 +55,10 @@
 </EditForm>
 
 @code {
+#nullable enable
     [EditorRequired]
     [Parameter]
-    public MetaAhorro MetaAhorro { get; set; } = new();
+    public MetaAhorroUpdateDto MetaAhorro { get; set; } = new();
 
     [EditorRequired]
     [Parameter]
@@ -66,12 +67,4 @@
     [EditorRequired]
     [Parameter]
     public EventCallback ReturnAction { get; set; }
-
-    protected override void OnParametersSet()
-    {
-        if (MetaAhorro != null && MetaAhorro.FechaCreacion == DateTime.MinValue)
-        {
-            MetaAhorro.FechaCreacion = DateTime.UtcNow;
-        }
-    }
 }

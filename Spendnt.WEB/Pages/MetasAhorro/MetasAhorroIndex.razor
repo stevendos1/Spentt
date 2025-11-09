@@ -2,7 +2,7 @@
 @attribute [Authorize]
 
 @using CurrieTechnologies.Razor.SweetAlert2
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.MetaAhorro
 @using Spendnt.WEB.Repositories
 @using Spendnt.WEB.Shared
 @using Microsoft.AspNetCore.Authorization
@@ -76,9 +76,8 @@
 </GenericList>
 
 @code {
-    private List<MetaAhorro>? listaMetasAhorro;
-    private bool isLoading = true;
-    private bool loadFailed = false;
+#nullable enable
+    private List<MetaAhorroDto>? listaMetasAhorro;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,43 +86,37 @@
 
     private async Task LoadMetasAhorro()
     {
-        isLoading = true;
-        loadFailed = false;
         StateHasChanged();
         try
         {
-            var responseHttp = await repository.GetAsync<List<MetaAhorro>>("/api/MetasAhorro");
+            var responseHttp = await repository.GetAsync<List<MetaAhorroDto>>("/api/MetasAhorro");
             if (responseHttp.Error)
             {
-                loadFailed = true;
                 var mensajeError = await responseHttp.GetErrorMessageAsync();
                 await swal.FireAsync("Error", $"No se pudieron cargar las metas de ahorro: {mensajeError}", SweetAlertIcon.Error);
-                listaMetasAhorro = new List<MetaAhorro>();
+                listaMetasAhorro = new List<MetaAhorroDto>();
             }
             else
             {
-                listaMetasAhorro = responseHttp.Response ?? new List<MetaAhorro>();
+                listaMetasAhorro = responseHttp.Response ?? new List<MetaAhorroDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
-            loadFailed = true;
             exception.Redirect();
         }
         catch (Exception ex)
         {
-            loadFailed = true;
             await swal.FireAsync("Error", $"Error inesperado al cargar las metas de ahorro: {ex.Message}", SweetAlertIcon.Error);
-            listaMetasAhorro = new List<MetaAhorro>();
+            listaMetasAhorro = new List<MetaAhorroDto>();
         }
         finally
         {
-            isLoading = false;
             StateHasChanged();
         }
     }
 
-    private async Task DeleteAsync(MetaAhorro metaParaBorrar)
+    private async Task DeleteAsync(MetaAhorroDto metaParaBorrar)
     {
         var result = await swal.FireAsync(new SweetAlertOptions
             {
@@ -162,7 +155,7 @@
         return Task.FromResult<string?>(null);
     }
 
-    private async Task ContribuirAsync(MetaAhorro meta)
+    private async Task ContribuirAsync(MetaAhorroDto meta)
     {
         var result = await swal.FireAsync(new SweetAlertOptions
             {

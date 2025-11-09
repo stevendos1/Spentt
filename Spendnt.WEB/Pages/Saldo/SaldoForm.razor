@@ -1,26 +1,26 @@
-﻿@using Spendnt.Shared.Entities
+﻿@using Spendnt.Shared.DTOs.Saldo
 @using System.ComponentModel.DataAnnotations
 
-<EditForm Model="Saldo" OnSubmit="OnSubmit">
+<EditForm Model="Saldo" OnValidSubmit="OnSubmit">
     <DataAnnotationsValidator />
 
     <div class="mb-3">
         <label class="form-label">Establecer Saldo Manual</label>
         <div>
-            <InputNumber class="form-control" @bind-Value="Saldo.TotalSaldo" TValue="decimal" />
+            <InputNumber class="form-control" @bind-Value="Saldo.TotalSaldo" TValue="decimal" step="0.01" />
             <ValidationMessage For="@(() => Saldo.TotalSaldo)" />
             
         </div>
     </div>
 
     <button class="btn btn-primary" type="submit">Guardar Saldo Manual</button>
-    <button class="btn btn-success" type="button" @onclick="ReturnAction">Regresar</button>
+    <button class="btn btn-outline-secondary ms-2" type="button" @onclick="ReturnAction">Regresar</button>
 </EditForm>
 
 @code {
     [EditorRequired]
     [Parameter]
-    public Saldo Saldo { get; set; } = new();
+    public SaldoUpdateDto Saldo { get; set; } = new();
 
     [EditorRequired]
     [Parameter]

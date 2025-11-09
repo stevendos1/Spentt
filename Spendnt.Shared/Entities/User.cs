@@ -10,13 +10,11 @@ namespace Spendnt.Shared.Entities
     {
         [Required]
         [MaxLength(50)]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]
-        public string LastName { get; set; }
-
-        public string FullName => $"{FirstName} {LastName}";
+        public string LastName { get; set; } = string.Empty;        public string FullName => $"{FirstName} {LastName}";
 
        
         [MaxLength(500)] 

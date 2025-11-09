@@ -1,12 +1,14 @@
 ﻿@page "/categorias"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Categoria
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication // Para AccessTokenNotAvailableException
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
-@inject HttpClient Http
-@inject NavigationManager NavigationManager
+@inject IRepository repository
+@inject SweetAlertService Swal
 
 
 <h3>Categorías</h3>
@@ -70,33 +72,51 @@ else
 }
 
 @code {
-    private List<Categoria>? categorias;
+#nullable enable
+    private List<CategoriaDto>? categorias;
     private bool loadFailed = false;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadCategorias();
+    }
+
+    private async Task LoadCategorias()
+    {
         isLoading = true;
+        loadFailed = false;
+        StateHasChanged();
+
         try
         {
-            categorias = await Http.GetFromJsonAsync<List<Categoria>>("api/categorias");
-            loadFailed = false;
+            var response = await repository.GetAsync<List<CategoriaDto>>("/api/Categorias");
+            if (response.Error)
+            {
+                loadFailed = true;
+                await Swal.FireAsync("Error", $"No se pudieron cargar las categorías: {await response.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+                categorias = new List<CategoriaDto>();
+            }
+            else
+            {
+                categorias = response.Response ?? new List<CategoriaDto>();
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
-            
-            loadFailed = true; 
+            loadFailed = true;
             exception.Redirect();
         }
         catch (Exception ex)
         {
             loadFailed = true;
-            Console.WriteLine($"Error cargando categorías: {ex.Message}");
-           
+            await Swal.FireAsync("Error", $"Error inesperado al cargar las categorías: {ex.Message}", SweetAlertIcon.Error);
+            categorias = new List<CategoriaDto>();
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 }

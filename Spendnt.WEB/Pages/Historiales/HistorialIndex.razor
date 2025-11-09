@@ -1,7 +1,7 @@
 ﻿@page "/historiales"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Historial
 @using Spendnt.WEB.Repositories
 @using Spendnt.WEB.Shared
 @using CurrieTechnologies.Razor.SweetAlert2
@@ -10,7 +10,6 @@
 
 @inject IRepository repository
 @inject NavigationManager navigationManager
-@inject IJSRuntime js
 @inject SweetAlertService Swal
 
 <h3>Historial de Transacciones</h3>
@@ -57,7 +56,7 @@ else
                     <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
                     <td class="text-capitalize">@item.Tipo</td>
                     <td>@item.Descripcion</td>
-                    <td>@item.Categoria?.Nombre</td>
+                    <td>@item.CategoriaNombre</td>
                     <td class="@(item.Tipo?.ToLower() == "ingreso" ? "text-success" : item.Tipo?.ToLower() == "egreso" ? "text-danger" : "") fw-bold">
                         @item.Monto.ToString("C")
                     </td>
@@ -72,7 +71,8 @@ else
 }
 
 @code {
-    private List<Historial>? historiales;
+#nullable enable
+    private List<HistorialDto>? historiales;
     private bool isLoading = true;
     private bool loadFailed = false;
 
@@ -88,7 +88,7 @@ else
         StateHasChanged();
         try
         {
-            var responseHttp = await repository.GetAsync<List<Historial>>("api/Historiales");
+            var responseHttp = await repository.GetAsync<List<HistorialDto>>("api/Historiales");
             if (responseHttp.Error)
             {
                 loadFailed = true;
@@ -96,7 +96,7 @@ else
             }
             else
             {
-                historiales = responseHttp.Response ?? new List<Historial>();
+                historiales = responseHttp.Response ?? new List<HistorialDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)

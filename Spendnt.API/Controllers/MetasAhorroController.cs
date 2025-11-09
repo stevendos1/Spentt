@@ -1,15 +1,15 @@
 ﻿// Spendnt.API/Controllers/MetasAhorroController.cs
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Spendnt.API.Data;
-using Spendnt.Shared.DTOs; 
-using Spendnt.Shared.Entities;
-using System;
+using Spendnt.API.Application.Interfaces;
+using Spendnt.Shared.DTOs.MetaAhorro;
+using Spendnt.Shared.Responses;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Spendnt.API.Controllers
 {
@@ -18,20 +18,17 @@ namespace Spendnt.API.Controllers
     [Route("api/[controller]")]
     public class MetasAhorroController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly IMetaAhorroService _metaAhorroService;
 
-        public MetasAhorroController(DataContext context)
+        public MetasAhorroController(IMetaAhorroService metaAhorroService)
         {
-            _context = context;
+            _metaAhorroService = metaAhorroService;
         }
 
-        private string? GetUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
-        }
+        private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MetaAhorro>>> GetMetasAhorro()
+        public async Task<ActionResult<IEnumerable<MetaAhorroDto>>> GetMetasAhorro()
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId))
@@ -39,14 +36,12 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("Usuario no autenticado.");
             }
 
-            return await _context.MetasAhorro
-                                 .Where(m => m.UserId == userId)
-                                 .OrderByDescending(m => m.FechaCreacion)
-                                 .ToListAsync();
+            var metas = await _metaAhorroService.GetAsync(userId);
+            return Ok(metas);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<MetaAhorro>> GetMetaAhorro(int id)
+        public async Task<ActionResult<MetaAhorroDto>> GetMetaAhorro(int id)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId))
@@ -54,17 +49,16 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("Usuario no autenticado.");
             }
 
-            var metaAhorro = await _context.MetasAhorro
-                                         .FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId);
+            var metaAhorro = await _metaAhorroService.GetByIdAsync(userId, id);
             if (metaAhorro == null)
             {
                 return NotFound($"No se encontró la meta de ahorro con ID {id} para el usuario actual.");
             }
-            return metaAhorro;
+            return Ok(metaAhorro);
         }
 
         [HttpPost]
-        public async Task<ActionResult<MetaAhorro>> PostMetaAhorro(MetaAhorroCreateDto metaDto) 
+        public async Task<ActionResult<MetaAhorroDto>> PostMetaAhorro(MetaAhorroCreateDto metaDto)
         {
             if (!ModelState.IsValid)
             {
@@ -77,40 +71,20 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("No se pudo identificar al usuario para crear la meta.");
             }
 
-            var metaAhorro = new MetaAhorro
-            {
-                Nombre = metaDto.Nombre,
-                Descripcion = metaDto.Descripcion,
-                MontoObjetivo = metaDto.MontoObjetivo,
-                MontoActual = metaDto.MontoActual, 
-                FechaObjetivo = metaDto.FechaObjetivo,
-                EstaCompletada = metaDto.EstaCompletada,
-                UserId = userId,
-                FechaCreacion = DateTime.UtcNow
-            };
-
-            _context.MetasAhorro.Add(metaAhorro);
             try
             {
-                await _context.SaveChangesAsync();
+                var created = await _metaAhorroService.CreateAsync(userId, metaDto);
+                return CreatedAtAction(nameof(GetMetaAhorro), new { id = created.Id }, created);
             }
-            catch (DbUpdateException ex)
+            catch (System.Exception)
             {
-                // Log ex.InnerException para más detalles
-                Console.WriteLine($"Error en PostMetaAhorro: {ex.ToString()}");
                 return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrió un error al guardar la meta de ahorro.");
             }
-            return CreatedAtAction(nameof(GetMetaAhorro), new { id = metaAhorro.Id }, metaAhorro);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> PutMetaAhorro(int id, MetaAhorro metaAhorroUpdateData) 
+        public async Task<IActionResult> PutMetaAhorro(int id, MetaAhorroUpdateDto metaAhorroUpdateData)
         {
-            if (id != metaAhorroUpdateData.Id)
-            {
-                return BadRequest("El ID en la ruta no coincide con el ID en el cuerpo de la solicitud.");
-            }
-
             if (!ModelState.IsValid) 
             {
                 return BadRequest(ModelState);
@@ -122,42 +96,10 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("Usuario no autenticado.");
             }
 
-            var existingMeta = await _context.MetasAhorro.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId);
-
-            if (existingMeta == null)
+            var updated = await _metaAhorroService.UpdateAsync(userId, id, metaAhorroUpdateData);
+            if (!updated)
             {
                 return NotFound($"No se encontró la meta de ahorro con ID {id} para el usuario actual, o no tienes permiso para modificarla.");
-            }
-
-           
-            existingMeta.Nombre = metaAhorroUpdateData.Nombre;
-            existingMeta.Descripcion = metaAhorroUpdateData.Descripcion;
-            existingMeta.MontoObjetivo = metaAhorroUpdateData.MontoObjetivo;
-            existingMeta.MontoActual = metaAhorroUpdateData.MontoActual;
-            existingMeta.FechaObjetivo = metaAhorroUpdateData.FechaObjetivo;
-            existingMeta.EstaCompletada = metaAhorroUpdateData.EstaCompletada;
-            
-
-            _context.Entry(existingMeta).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await _context.MetasAhorro.AnyAsync(e => e.Id == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            catch (DbUpdateException ex)
-            {
-                Console.WriteLine($"Error en PutMetaAhorro: {ex.ToString()}");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrió un error al actualizar la meta de ahorro.");
             }
             return NoContent();
         }
@@ -171,19 +113,16 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("Usuario no autenticado.");
             }
 
-            var metaAhorro = await _context.MetasAhorro.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId);
-            if (metaAhorro == null)
+            var deleted = await _metaAhorroService.DeleteAsync(userId, id);
+            if (!deleted)
             {
                 return NotFound($"No se encontró la meta de ahorro con ID {id} para el usuario actual, o no tienes permiso para eliminarla.");
             }
-
-            _context.MetasAhorro.Remove(metaAhorro);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpPost("{id:int}/contribuir")]
-        public async Task<IActionResult> ContribuirMetaAhorro(int id, [FromBody] decimal monto)
+        public async Task<ActionResult<OperationResponse>> ContribuirMetaAhorro(int id, [FromBody] decimal monto)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId))
@@ -191,25 +130,12 @@ namespace Spendnt.API.Controllers
                 return Unauthorized("Usuario no autenticado.");
             }
 
-            var metaAhorro = await _context.MetasAhorro.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId);
-            if (metaAhorro == null)
+            var response = await _metaAhorroService.ContribuirAsync(id, monto, userId);
+            if (!response.Success)
             {
-                return NotFound("Meta de ahorro no encontrada o no pertenece al usuario.");
+                return BadRequest(response);
             }
-
-            metaAhorro.MontoActual += monto;
-            if (metaAhorro.MontoActual < 0) metaAhorro.MontoActual = 0;
-            metaAhorro.EstaCompletada = metaAhorro.MontoActual >= metaAhorro.MontoObjetivo;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return Conflict("Hubo un problema de concurrencia al actualizar la meta. Inténtalo de nuevo.");
-            }
-            return Ok(metaAhorro);
+            return Ok(response);
         }
     }
 }

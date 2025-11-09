@@ -27,13 +27,13 @@ namespace Spendnt.Shared.Entities
 
         [JsonIgnore]
       
-        public virtual Categoria Categoria { get; set; }
+        public virtual Categoria? Categoria { get; set; }
 
         [Required] 
         public int SaldoId { get; set; }
 
         [JsonIgnore]
         [ForeignKey("SaldoId")]
-        public virtual Saldo Saldo { get; set; }
+        public virtual Saldo? Saldo { get; set; }
     }
 }

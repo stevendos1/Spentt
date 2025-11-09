@@ -34,14 +34,13 @@ namespace Spendnt.Shared.Entities
         }
 
       
+      
         [Required]
-        public string UserId { get; set; } 
+        public string UserId { get; set; } = string.Empty;
 
         [JsonIgnore]
         [ForeignKey("UserId")]
-        public virtual User User { get; set; } 
-
-        public Saldo()
+        public virtual User? User { get; set; }        public Saldo()
         {
             Ingresos = new List<Ingresos>();
             Egresos = new List<Egresos>();

@@ -26,9 +26,59 @@ Brindar a las personas una herramienta centralizada para tomar decisiones inform
 - Separación clara entre entidades de dominio, DTOs y lógica de presentación para favorecer el mantenimiento y la escalabilidad.
 
 ## Tecnologías principales
-- ASP.NET Core 7
+- ASP.NET Core 9
 - Entity Framework Core
 - SQL Server
 - Blazor WebAssembly
 - ASP.NET Core Identity & JWT
 - Swagger / OpenAPI
+
+## Requisitos previos
+- [.NET SDK 9.0](https://dotnet.microsoft.com/download)
+- Instancia de SQL Server (LocalDB, Developer o una base compatible con SQL Server)
+- Opcional: herramienta `dotnet-ef` instalada globalmente (`dotnet tool install --global dotnet-ef`) para ejecutar migraciones desde la terminal
+
+## Configuración inicial
+1. Clona el repositorio y ubícate en la carpeta raíz (`Spendnt/`).
+2. Actualiza la cadena de conexión `DefaultConnection` en `Spendnt.API/appsettings.Development.json` (y/o `appsettings.json`) para que apunte a tu servidor SQL Server.
+3. Verifica que los valores de JWT en `appsettings.Development.json` coincidan con las URLs que planeas utilizar (por defecto apuntan a los puertos de desarrollo descritos abajo).
+
+## Migraciones y base de datos
+La API incluye migraciones de Entity Framework Core y un seeder que crea datos de ejemplo. Para preparar la base de datos ejecuta:
+
+```powershell
+dotnet ef database update --project Spendnt.API/Spendnt.API.csproj --startup-project Spendnt.API/Spendnt.API.csproj
+```
+
+El comando anterior crea o actualiza la base de datos indicada en la cadena de conexión. Al arrancar la API en entorno de desarrollo se ejecuta el seeding (`SeedDB`) que crea roles, categorías predefinidas, movimientos de ejemplo y un usuario de prueba.
+
+## Ejecución de los proyectos (solo `dotnet run`)
+1. Abre una terminal en la raíz del repositorio (`Spendnt/`).
+2. Inicia la API con `dotnet run`:
+
+	```powershell
+	dotnet run --project Spendnt.API/Spendnt.API.csproj
+	```
+
+	La API expone Swagger en `http://localhost:5230/swagger` mientras está en ejecución.
+
+3. En una segunda terminal, inicia el cliente Blazor WebAssembly:
+
+	```powershell
+	dotnet run --project Spendnt.WEB/Spendnt.WEB.csproj
+	```
+
+	El cliente se conectará automáticamente a la API en los puertos por defecto.
+
+Puertos por defecto configurados en los perfiles de desarrollo:
+- API: `http://localhost:5230` (HTTPS opcional en `https://localhost:7000`).
+- Cliente Blazor: `http://localhost:5047` (HTTPS opcional en `https://localhost:8000`).
+
+## Usuario de prueba inicial
+El seeder crea un usuario listo para iniciar sesión y explorar la aplicación:
+
+- **Correo:** `testuser@example.com`
+- **Contraseña:** `Password123!`
+- **Rol:** `User` (los roles `User` y `Admin` se crean automáticamente).
+
+Si necesitas un administrador, puedes promover el usuario semilla manualmente o crear uno nuevo usando las herramientas de Identity.

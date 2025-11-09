@@ -8,16 +8,22 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Spendnt.WEB.Auth;
 using System.Net.Http;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication; // Para BaseAddressAuthorizationMessageHandler
+using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+var appCulture = CultureInfo.CreateSpecificCulture("es-MX");
+CultureInfo.DefaultThreadCurrentCulture = appCulture;
+CultureInfo.DefaultThreadCurrentUICulture = appCulture;
+CultureInfo.CurrentCulture = appCulture;
+CultureInfo.CurrentUICulture = appCulture;
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // 1. HttpClient para uso general y por el Repository.
-//    JwtAuthenticationService le añadirá la cabecera de autorización.
+//    JwtAuthenticationService le aï¿½adirï¿½ la cabecera de autorizaciï¿½n.
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7000") // URL de tu API
+    BaseAddress = new Uri("http://localhost:5230") // URL de tu API en desarrollo
 });
 
 
@@ -25,11 +31,11 @@ builder.Services.AddScoped(sp => new HttpClient
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddSweetAlert2();
 
-// Configuración de Autenticación
+// Configuraciï¿½n de Autenticaciï¿½n
 builder.Services.AddOptions();
-builder.Services.AddAuthorizationCore(); // Servicios básicos de autorización
+builder.Services.AddAuthorizationCore(); // Servicios bï¿½sicos de autorizaciï¿½n
 
-// Registrar tu servicio de autenticación personalizado
+// Registrar tu servicio de autenticaciï¿½n personalizado
 // JwtAuthenticationService implementa tanto AuthenticationStateProvider como ILoginService
 // Ya inyecta HttpClient directamente.
 builder.Services.AddScoped<JwtAuthenticationService>();
@@ -38,17 +44,17 @@ builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
 builder.Services.AddScoped<ILoginService>(provider =>
     provider.GetRequiredService<JwtAuthenticationService>());
 
-// ELIMINAR o COMENTAR esta línea si estás manejando JWT manualmente con JwtAuthenticationService
+// ELIMINAR o COMENTAR esta lï¿½nea si estï¿½s manejando JWT manualmente con JwtAuthenticationService
 // builder.Services.AddApiAuthorization();
 
 // Si NO usas AddApiAuthorization(), y BaseAddressAuthorizationMessageHandler sigue siendo necesario
 // (lo cual es raro si JwtAuthenticationService ya pone la cabecera),
-// necesitarías registrar IAccessTokenProvider manualmente.
-// PERO, si JwtAuthenticationService ya añade la cabecera al HttpClient que se le inyecta,
+// necesitarï¿½as registrar IAccessTokenProvider manualmente.
+// PERO, si JwtAuthenticationService ya aï¿½ade la cabecera al HttpClient que se le inyecta,
 // y ese mismo HttpClient es usado por IRepository, entonces BaseAddressAuthorizationMessageHandler
-// podría no ser necesario en la configuración de AddHttpClient.
+// podrï¿½a no ser necesario en la configuraciï¿½n de AddHttpClient.
 
 // Intenta primero sin BaseAddressAuthorizationMessageHandler si JwtAuthenticationService
-// ya está configurando la cabecera del HttpClient compartido.
+// ya estï¿½ configurando la cabecera del HttpClient compartido.
 
 await builder.Build().RunAsync();

@@ -1,7 +1,8 @@
 ﻿@page "/Egresos/edit/{Id:int}"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Egreso
+@using Spendnt.Shared.DTOs.Categoria
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -13,7 +14,7 @@
 
 <h3>Editar Egreso</h3>
 
-@if (egresoModel == null && !loadFailed)
+@if (egresoModel is null && !loadFailed)
 {
     <p><em>Cargando egreso...</em></p>
 }
@@ -21,21 +22,21 @@ else if (loadFailed)
 {
     <div class="alert alert-danger" role="alert">No se pudo cargar el egreso para editar.</div>
 }
-else if (egresoModel != null)
+else if (egresoModel is not null)
 {
-    <EgresosForm @ref="egresosForm" Egresos="egresoModel" OnSubmit="Edit" ReturnAction="Return" Categorias="listaCategorias" />
+    <EgresosForm @ref="egresosForm" Egreso="egresoModel!" OnSubmit="Edit" ReturnAction="Return" Categorias="listaCategorias" />
 }
 
 
 @code {
+#nullable enable
     [Parameter]
     public int Id { get; set; }
 
-    private Egresos? egresoModel;
+    private EgresoUpdateDto? egresoModel;
     private EgresosForm? egresosForm;
-    private List<Categoria> listaCategorias = new();
+    private List<CategoriaDto> listaCategorias = new();
     private bool loadFailed = false;
-    private bool isLoadingCategorias = true;
 
 
     protected override async Task OnInitializedAsync()
@@ -44,7 +45,7 @@ else if (egresoModel != null)
 
         try
         {
-            var responseHTTP = await repository.GetAsync<Egresos>($"/api/Egresos/{Id}");
+            var responseHTTP = await repository.GetAsync<EgresoDto>($"/api/Egresos/{Id}");
             if (responseHTTP.Error)
             {
                 loadFailed = true;
@@ -60,8 +61,20 @@ else if (egresoModel != null)
             }
             else
             {
-                egresoModel = responseHTTP.Response;
-                if (egresoModel == null) loadFailed = true;
+                var egresoDetalle = responseHTTP.Response;
+                if (egresoDetalle == null)
+                {
+                    loadFailed = true;
+                }
+                else
+                {
+                    egresoModel = new EgresoUpdateDto
+                    {
+                        Monto = egresoDetalle.Monto,
+                        Fecha = egresoDetalle.Fecha,
+                        CategoriaId = egresoDetalle.CategoriaId
+                    };
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -78,10 +91,9 @@ else if (egresoModel != null)
 
     private async Task CargarCategorias()
     {
-        isLoadingCategorias = true;
         try
         {
-            var responseHttp = await repository.GetAsync<List<Categoria>>("/api/Categorias");
+            var responseHttp = await repository.GetAsync<List<CategoriaDto>>("/api/Categorias");
             if (responseHttp.Error)
             {
                 var mensaje = await responseHttp.GetErrorMessageAsync();
@@ -89,7 +101,7 @@ else if (egresoModel != null)
             }
             else
             {
-                listaCategorias = responseHttp.Response ?? new List<Categoria>();
+                listaCategorias = responseHttp.Response ?? new List<CategoriaDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -100,17 +112,17 @@ else if (egresoModel != null)
         {
             await swal.FireAsync("Error", $"Error inesperado al cargar categorías: {ex.Message}", SweetAlertIcon.Error);
         }
-        finally
-        {
-            isLoadingCategorias = false;
-        }
     }
 
     private async Task Edit()
     {
-        if (egresoModel == null) return;
+        if (egresoModel is null)
+        {
+            await swal.FireAsync("Error", "No se encontró información del egreso para actualizar.", SweetAlertIcon.Error);
+            return;
+        }
 
-        var responseHTTP = await repository.PutAsync($"/api/Egresos/{egresoModel.Id}", egresoModel);
+        var responseHTTP = await repository.PutAsync($"/api/Egresos/{Id}", egresoModel);
         if (responseHTTP.Error)
         {
             var mensajeError = await responseHTTP.GetErrorMessageAsync();

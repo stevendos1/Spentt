@@ -19,15 +19,15 @@ namespace Spendnt.Shared.Entities
 
         [Required]
         [MaxLength(50)]
-        public string Tipo { get; set; } 
+        public string Tipo { get; set; } = string.Empty;
 
         [MaxLength(255)]
-        public string Descripcion { get; set; }
+        public string? Descripcion { get; set; }
 
         [Required]
         public int CategoriaId { get; set; }
         [JsonIgnore]
-        public virtual Categoria Categoria { get; set; }
+        public virtual Categoria? Categoria { get; set; }
 
       
         [Required]
@@ -35,6 +35,6 @@ namespace Spendnt.Shared.Entities
 
         [JsonIgnore]
         [ForeignKey("SaldoId")]
-        public virtual Saldo Saldo { get; set; } 
+        public virtual Saldo? Saldo { get; set; }
     }
 }

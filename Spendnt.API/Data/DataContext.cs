@@ -14,7 +14,7 @@ namespace Spendnt.API.Data
         IdentityUserRole<string>,
         IdentityUserLogin<string>,
         IdentityRoleClaim<string>,
-        IdentityUserToken<string>>
+        IdentityUserToken<string>>, IApplicationDbContext
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {

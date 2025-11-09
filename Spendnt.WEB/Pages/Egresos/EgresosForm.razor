@@ -1,24 +1,25 @@
 ﻿@* Spendnt.WEB/Pages/Egresos/EgresosForm.razor *@
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Egreso
+@using Spendnt.Shared.DTOs.Categoria
 @using System.ComponentModel.DataAnnotations
 
-<EditForm Model="Egresos" OnSubmit="OnSubmit">
+<EditForm Model="Egreso" OnSubmit="OnSubmit">
     <DataAnnotationsValidator />
     @* <ValidationSummary /> *@
 
     <div class="mb-3">
         <label for="egresoMonto" class="form-label">Monto del Egreso</label>
         <div>
-            <InputNumber id="egresoMonto" class="form-control" @bind-Value="Egresos.Egreso" />
-            <ValidationMessage For="@(() => Egresos.Egreso)" />
+            <InputNumber id="egresoMonto" class="form-control" @bind-Value="Egreso.Monto" />
+            <ValidationMessage For="@(() => Egreso.Monto)" />
         </div>
     </div>
 
     <div class="mb-3">
         <label for="egresoFecha" class="form-label">Fecha</label>
         <div>
-            <InputDate id="egresoFecha" class="form-control" @bind-Value="Egresos.Fecha" />
-            <ValidationMessage For="@(() => Egresos.Fecha)" />
+            <InputDate id="egresoFecha" class="form-control" @bind-Value="Egreso.Fecha" />
+            <ValidationMessage For="@(() => Egreso.Fecha)" />
         </div>
     </div>
 
@@ -35,7 +36,7 @@
             else
             {
                 @* ESPECIFICAR TValue="int" AQUÍ *@
-                <InputSelect id="egresoCategoria" class="form-control" @bind-Value="Egresos.CategoriaId" TValue="int">
+                <InputSelect id="egresoCategoria" class="form-control" @bind-Value="Egreso.CategoriaId" TValue="int">
                     <option value="0">-- Seleccione una categoría --</option>
                     @if (Categorias.Any())
                     {
@@ -49,7 +50,7 @@
                         <option value="" disabled>No hay categorías disponibles</option>
                     }
                 </InputSelect>
-                <ValidationMessage For="@(() => Egresos.CategoriaId)" />
+                <ValidationMessage For="@(() => Egreso.CategoriaId)" />
             }
         </div>
     </div>
@@ -67,12 +68,13 @@
 </EditForm>
 
 @code {
+#nullable enable
     [EditorRequired]
     [Parameter]
-    public Egresos Egresos { get; set; } = new();
+    public EgresoUpdateDto Egreso { get; set; } = new();
 
     [Parameter]
-    public List<Categoria>? Categorias { get; set; }
+    public List<CategoriaDto>? Categorias { get; set; }
 
     [EditorRequired]
     [Parameter]
@@ -84,9 +86,9 @@
 
     protected override void OnParametersSet()
     {
-        if (Egresos != null && Egresos.Id == 0 && Egresos.Fecha == DateTime.MinValue)
+        if (Egreso.Fecha == DateTime.MinValue)
         {
-            Egresos.Fecha = DateTime.Today;
+            Egreso.Fecha = DateTime.Today;
         }
     }
 }

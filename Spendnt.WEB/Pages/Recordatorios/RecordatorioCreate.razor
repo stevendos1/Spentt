@@ -1,7 +1,7 @@
 ﻿@page "/recordatorios/create"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.RecordatorioGasto
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -16,7 +16,7 @@
 <RecordatorioForm Recordatorio="recordatorioModel" OnValidSubmit="Guardar" />
 
 @code {
-    private RecordatorioGasto recordatorioModel = new();
+    private RecordatorioGastoUpdateDto recordatorioModel = new();
 
     protected override void OnInitialized()
     {
@@ -28,7 +28,15 @@
 
     private async Task Guardar()
     {
-        var response = await repository.PostAsync("/api/RecordatoriosGasto", recordatorioModel);
+        var createDto = new RecordatorioGastoCreateDto
+        {
+            Titulo = recordatorioModel.Titulo,
+            MontoEstimado = recordatorioModel.MontoEstimado,
+            FechaProgramada = recordatorioModel.FechaProgramada,
+            Notas = recordatorioModel.Notas
+        };
+
+        var response = await repository.PostAsync("/api/RecordatoriosGasto", createDto);
         if (response.Error)
         {
             var mensaje = await response.GetErrorMessageAsync();

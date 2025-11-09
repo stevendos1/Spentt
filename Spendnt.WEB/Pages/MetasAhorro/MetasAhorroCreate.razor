@@ -1,8 +1,7 @@
 ﻿@page "/MetasAhorro/create"
 @attribute [Authorize]
 
-@using Spendnt.Shared.DTOs 
-@using Spendnt.Shared.Entities 
+@using Spendnt.Shared.DTOs.MetaAhorro
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -14,11 +13,12 @@
 
 <h3>Crear Nueva Meta de Ahorro</h3>
 
-<MetasAhorroForm @ref="metaAhorroForm" MetaAhorro="metaAhorroDisplayModel" OnSubmit="Create" ReturnAction="Return" />
+<MetasAhorroForm @ref="metaAhorroForm" MetaAhorro="metaAhorroModel" OnSubmit="Create" ReturnAction="Return" />
 
 
 @code {
-    private MetaAhorro metaAhorroDisplayModel = new(); 
+    #nullable enable
+    private MetaAhorroUpdateDto metaAhorroModel = new(); 
     private MetasAhorroForm? metaAhorroForm;
 
 
@@ -26,12 +26,12 @@
     {
         var createDto = new MetaAhorroCreateDto
             {
-                Nombre = metaAhorroDisplayModel.Nombre,
-                Descripcion = metaAhorroDisplayModel.Descripcion,
-                MontoObjetivo = metaAhorroDisplayModel.MontoObjetivo,
-                MontoActual = metaAhorroDisplayModel.MontoActual,
-                FechaObjetivo = metaAhorroDisplayModel.FechaObjetivo,
-                EstaCompletada = metaAhorroDisplayModel.EstaCompletada
+                Nombre = metaAhorroModel.Nombre,
+                Descripcion = metaAhorroModel.Descripcion,
+                MontoObjetivo = metaAhorroModel.MontoObjetivo,
+                MontoActual = metaAhorroModel.MontoActual,
+                FechaObjetivo = metaAhorroModel.FechaObjetivo,
+                EstaCompletada = metaAhorroModel.EstaCompletada
             };
 
         var responseHttp = await repository.PostAsync("/api/MetasAhorro", createDto); 

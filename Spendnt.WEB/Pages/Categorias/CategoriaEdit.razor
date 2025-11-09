@@ -1,16 +1,19 @@
 ﻿@page "/categorias/edit/{Id:int}"
 @attribute [Authorize(Roles = "Admin")] 
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Categoria
+@using Spendnt.WEB.Repositories
+@using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
-@inject HttpClient Http
-@inject NavigationManager NavigationManager
-@inject IJSRuntime JS 
-@inject CurrieTechnologies.Razor.SweetAlert2.SweetAlertService Swal
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService Swal
 
 <h3>Editar Categoría</h3>
 
-@if (categoria == null && !isLoadingError)
+@if (categoria is null && !isLoadingError)
 {
     <p><em>Cargando...</em></p>
 }
@@ -18,44 +21,81 @@ else if (isLoadingError)
 {
     <div class="alert alert-danger">No se pudo cargar la categoría para editar.</div>
 }
-else
+else if (categoria is not null)
 {
     <CategoriaForm Model="categoria" OnValidSubmit="Guardar" />
 }
 
 @code {
+#nullable enable
     [Parameter] public int Id { get; set; }
 
-    private Categoria? categoria;
+    private CategoriaCreateDto? categoria;
     private bool isLoadingError = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            categoria = await Http.GetFromJsonAsync<Categoria>($"api/categorias/{Id}");
+            var response = await repository.GetAsync<CategoriaDto>($"/api/Categorias/{Id}");
+            if (response.Error)
+            {
+                isLoadingError = true;
+                if (response.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    navigationManager.NavigateTo("/categorias");
+                }
+                else
+                {
+                    await Swal.FireAsync("Error", await response.GetErrorMessageAsync(), SweetAlertIcon.Error);
+                }
+            }
+            else
+            {
+                var categoriaDetalle = response.Response;
+                if (categoriaDetalle == null)
+                {
+                    isLoadingError = true;
+                }
+                else
+                {
+                    categoria = new CategoriaCreateDto
+                    {
+                        Nombre = categoriaDetalle.Nombre,
+                        Descripcion = categoriaDetalle.Descripcion
+                    };
+                }
+            }
         }
-        catch (Exception ex) 
+        catch (AccessTokenNotAvailableException exception)
         {
             isLoadingError = true;
-            Console.WriteLine($"Error cargando categoría para editar: {ex.Message}");
-           
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            isLoadingError = true;
+            await Swal.FireAsync("Error", $"Error inesperado al cargar la categoría: {ex.Message}", SweetAlertIcon.Error);
         }
     }
 
     private async Task Guardar()
     {
-        if (categoria == null) return;
-
-        var response = await Http.PutAsJsonAsync($"api/categorias/{categoria.Id}", categoria); 
-        if (response.IsSuccessStatusCode)
+        if (categoria is null)
         {
-            NavigationManager.NavigateTo("/categorias");
+            await Swal.FireAsync("Error", "No se cargó la información de la categoría.", SweetAlertIcon.Error);
+            return;
+        }
+
+        var response = await repository.PutAsync($"/api/Categorias/{Id}", categoria);
+        if (response.Error)
+        {
+            var mensaje = await response.GetErrorMessageAsync();
+            await Swal.FireAsync("Error", $"No se pudo actualizar la categoría: {mensaje}", SweetAlertIcon.Error);
         }
         else
         {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            await Swal.FireAsync("Error", $"No se pudo actualizar la categoría: {errorContent}", "error");
+            navigationManager.NavigateTo("/categorias");
         }
     }
 }

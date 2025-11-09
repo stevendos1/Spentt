@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\Spendnt.Shared.csproj": {}
+    "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\Spendnt.Shared.csproj": {}
   },
   "projects": {
-    "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\Spendnt.Shared.csproj": {
+    "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\Spendnt.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\Spendnt.Shared.csproj",
+        "projectUniqueName": "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\Spendnt.Shared.csproj",
         "projectName": "Spendnt.Shared",
-        "projectPath": "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\Spendnt.Shared.csproj",
+        "projectPath": "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\Spendnt.Shared.csproj",
         "packagesPath": "C:\\Users\\steve\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.Shared\\obj\\",
+        "outputPath": "C:\\cruds\\spent-original\\Spendnt\\Spendnt.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

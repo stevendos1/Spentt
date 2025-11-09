@@ -1,15 +1,14 @@
-﻿
-using Spendnt.WEB.Repositories;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace Spendnt.WEB.Repositories
 {
+#nullable enable
     public class Repository : IRepository
     {
         private readonly HttpClient _httpClient;
 
-        private JsonSerializerOptions _jsonDefaultOptions => new JsonSerializerOptions
+        private JsonSerializerOptions JsonDefaultOptions => new()
         {
             PropertyNameCaseInsensitive = true,
         };
@@ -24,7 +23,7 @@ namespace Spendnt.WEB.Repositories
             var responseHttp = await _httpClient.GetAsync(url);
             if (responseHttp.IsSuccessStatusCode)
             {
-                var response = await UnserializeAnswer<T>(responseHttp, _jsonDefaultOptions);
+                var response = await UnserializeAnswer<T>(responseHttp, JsonDefaultOptions);
                 return new HttpResponseWrapper<T>(response, false, responseHttp);
             }
 
@@ -46,16 +45,21 @@ namespace Spendnt.WEB.Repositories
             var responseHttp = await _httpClient.PostAsync(url, messageContet);
             if (responseHttp.IsSuccessStatusCode)
             {
-                var response = await UnserializeAnswer<TResponse>(responseHttp, _jsonDefaultOptions);
+                var response = await UnserializeAnswer<TResponse>(responseHttp, JsonDefaultOptions);
                 return new HttpResponseWrapper<TResponse>(response, false, responseHttp);
             }
             return new HttpResponseWrapper<TResponse>(default, !responseHttp.IsSuccessStatusCode, responseHttp);
         }
 
-        private async Task<T> UnserializeAnswer<T>(HttpResponseMessage httpResponse, JsonSerializerOptions jsonSerializerOptions)
+        private async Task<T?> UnserializeAnswer<T>(HttpResponseMessage httpResponse, JsonSerializerOptions jsonSerializerOptions)
         {
             var respuestaString = await httpResponse.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(respuestaString, jsonSerializerOptions)!;
+            if (string.IsNullOrWhiteSpace(respuestaString))
+            {
+                return default;
+            }
+
+            return JsonSerializer.Deserialize<T>(respuestaString, jsonSerializerOptions);
         }
 
         public async Task<HttpResponseWrapper<object>> PutAsync<T>(string url, T model)
@@ -74,7 +78,7 @@ namespace Spendnt.WEB.Repositories
             var responseHttp = await _httpClient.PutAsync(url, messageContet);
             if (responseHttp.IsSuccessStatusCode)
             {
-                var response = await UnserializeAnswer<TResponse>(responseHttp, _jsonDefaultOptions);
+                var response = await UnserializeAnswer<TResponse>(responseHttp, JsonDefaultOptions);
                 return new HttpResponseWrapper<TResponse>(response, false, responseHttp);
             }
             return new HttpResponseWrapper<TResponse>(default, !responseHttp.IsSuccessStatusCode, responseHttp);

@@ -13,9 +13,7 @@ namespace Spendnt.Shared.Entities
 
         [Required(ErrorMessage = "El título es obligatorio.")]
         [MaxLength(200, ErrorMessage = "El título no puede exceder los 200 caracteres.")]
-        public string Titulo { get; set; }
-
-        [Required(ErrorMessage = "El monto estimado es obligatorio.")]
+        public string Titulo { get; set; } = string.Empty;        [Required(ErrorMessage = "El monto estimado es obligatorio.")]
         [Column(TypeName = "decimal(18,2)")]
         [Range(0.01, double.MaxValue, ErrorMessage = "El monto estimado debe ser mayor a cero.")]
         public decimal MontoEstimado { get; set; }
@@ -25,14 +23,14 @@ namespace Spendnt.Shared.Entities
         public DateTime FechaProgramada { get; set; }
 
         [MaxLength(500, ErrorMessage = "Las notas no pueden exceder los 500 caracteres.")]
-        public string Notas { get; set; }
+    public string? Notas { get; set; }
 
         
         [Required]
-        public string UserId { get; set; } 
+        public string UserId { get; set; } = string.Empty;
 
         [JsonIgnore]
         [ForeignKey("UserId")]
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
     }
 }

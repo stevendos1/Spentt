@@ -1,7 +1,7 @@
 ﻿@page "/recordatorios/edit/{Id:int}"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.RecordatorioGasto
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -13,7 +13,7 @@
 
 <h3>Editar Recordatorio de Gasto</h3>
 
-@if (recordatorioModel == null && !loadFailed)
+@if (recordatorioModel is null && !loadFailed)
 {
     <p><em>Cargando recordatorio...</em></p>
 }
@@ -21,24 +21,23 @@ else if (loadFailed)
 {
     <div class="alert alert-danger">No se pudo cargar el recordatorio para editar.</div>
 }
-else if (recordatorioModel != null)
+else if (recordatorioModel is not null)
 {
-    <RecordatorioForm Recordatorio="recordatorioModel" OnValidSubmit="Guardar" />
+    <RecordatorioForm Recordatorio="recordatorioModel!" OnValidSubmit="Guardar" />
 }
 
 @code {
+#nullable enable
     [Parameter] public int Id { get; set; }
-    private RecordatorioGasto? recordatorioModel;
+    private RecordatorioGastoUpdateDto? recordatorioModel;
     private bool loadFailed = false;
-    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
         loadFailed = false;
         try
         {
-            var responseHttp = await repository.GetAsync<RecordatorioGasto>($"api/RecordatoriosGasto/{Id}");
+            var responseHttp = await repository.GetAsync<RecordatorioGastoDto>($"api/RecordatoriosGasto/{Id}");
             if (responseHttp.Error)
             {
                 loadFailed = true;
@@ -53,8 +52,21 @@ else if (recordatorioModel != null)
             }
             else
             {
-                recordatorioModel = responseHttp.Response;
-                if (recordatorioModel == null) loadFailed = true;
+                var recordatorioDetalle = responseHttp.Response;
+                if (recordatorioDetalle == null)
+                {
+                    loadFailed = true;
+                }
+                else
+                {
+                    recordatorioModel = new RecordatorioGastoUpdateDto
+                    {
+                        Titulo = recordatorioDetalle.Titulo,
+                        MontoEstimado = recordatorioDetalle.MontoEstimado,
+                        FechaProgramada = recordatorioDetalle.FechaProgramada,
+                        Notas = recordatorioDetalle.Notas
+                    };
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -67,16 +79,17 @@ else if (recordatorioModel != null)
             loadFailed = true;
             await Swal.FireAsync("Error", $"Error inesperado al cargar el recordatorio: {ex.Message}", SweetAlertIcon.Error);
         }
-        finally
-        {
-            isLoading = false;
-        }
     }
 
     private async Task Guardar()
     {
-        if (recordatorioModel == null) return;
-        var response = await repository.PutAsync($"/api/RecordatoriosGasto/{recordatorioModel.Id}", recordatorioModel);
+        if (recordatorioModel is null)
+        {
+            await Swal.FireAsync("Error", "No se pudo cargar el recordatorio para actualizar.", SweetAlertIcon.Error);
+            return;
+        }
+
+        var response = await repository.PutAsync($"/api/RecordatoriosGasto/{Id}", recordatorioModel);
         if (response.Error)
         {
             var mensaje = await response.GetErrorMessageAsync();

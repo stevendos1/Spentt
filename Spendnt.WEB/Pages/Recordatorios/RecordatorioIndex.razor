@@ -1,7 +1,7 @@
 ﻿@page "/recordatorios"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.RecordatorioGasto
 @using Spendnt.WEB.Repositories
 @using Spendnt.WEB.Shared
 @using CurrieTechnologies.Razor.SweetAlert2
@@ -10,7 +10,6 @@
 
 @inject IRepository repository
 @inject NavigationManager navigationManager
-@inject IJSRuntime js
 @inject SweetAlertService Swal
 
 <h3>Recordatorios de Gasto</h3>
@@ -63,9 +62,8 @@
 </GenericList>
 
 @code {
-    private List<RecordatorioGasto>? listaRecordatorios;
-    private bool isLoading = true;
-    private bool loadFailed = false;
+#nullable enable
+    private List<RecordatorioGastoDto>? listaRecordatorios;
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,35 +72,31 @@
 
     private async Task LoadRecordatorios()
     {
-        isLoading = true;
-        loadFailed = false;
         StateHasChanged();
         try
         {
-            var responseHttp = await repository.GetAsync<List<RecordatorioGasto>>("api/RecordatoriosGasto");
+            var responseHttp = await repository.GetAsync<List<RecordatorioGastoDto>>("api/RecordatoriosGasto");
             if (responseHttp.Error)
             {
-                loadFailed = true;
                 await Swal.FireAsync("Error", $"No se pudieron cargar los recordatorios: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
+                listaRecordatorios = new List<RecordatorioGastoDto>();
             }
             else
             {
-                listaRecordatorios = responseHttp.Response ?? new List<RecordatorioGasto>();
+                listaRecordatorios = responseHttp.Response ?? new List<RecordatorioGastoDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
-            loadFailed = true;
             exception.Redirect();
         }
         catch (Exception ex)
         {
-            loadFailed = true;
             await Swal.FireAsync("Error", $"Error inesperado al cargar recordatorios: {ex.Message}", SweetAlertIcon.Error);
+            listaRecordatorios = new List<RecordatorioGastoDto>();
         }
         finally
         {
-            isLoading = false;
             StateHasChanged();
         }
     }

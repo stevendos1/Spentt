@@ -1,4 +1,4 @@
-﻿@using Spendnt.Shared.Entities
+﻿@using Spendnt.Shared.DTOs.RecordatorioGasto
 @using System.ComponentModel.DataAnnotations
 
 <EditForm Model="Recordatorio" OnValidSubmit="OnValidSubmit">
@@ -13,13 +13,13 @@
 
     <div class="mb-3">
         <label class="form-label">Fecha Programada</label>
-        <InputDate class="form-control" @bind-Value="Recordatorio.FechaProgramada" />
+    <InputDate class="form-control" @bind-Value="Recordatorio.FechaProgramada" />
         <ValidationMessage For="@(() => Recordatorio.FechaProgramada)" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Monto Estimado</label>
-        <InputNumber class="form-control" @bind-Value="Recordatorio.MontoEstimado" />
+    <InputNumber class="form-control" @bind-Value="Recordatorio.MontoEstimado" />
         <ValidationMessage For="@(() => Recordatorio.MontoEstimado)" />
     </div>
 
@@ -34,12 +34,12 @@
 </EditForm>
 
 @code {
-    [Parameter] public RecordatorioGasto Recordatorio { get; set; } = new();
+    [Parameter] public RecordatorioGastoUpdateDto Recordatorio { get; set; } = new();
     [Parameter] public EventCallback OnValidSubmit { get; set; }
 
     protected override void OnParametersSet()
     {
-        if (Recordatorio != null && Recordatorio.FechaProgramada == DateTime.MinValue)
+        if (Recordatorio.FechaProgramada == DateTime.MinValue)
         {
             Recordatorio.FechaProgramada = DateTime.Today.AddDays(7);
         }

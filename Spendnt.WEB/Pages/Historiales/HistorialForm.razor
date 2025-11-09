@@ -1,4 +1,5 @@
-﻿@using Spendnt.Shared.Entities
+﻿@using Spendnt.Shared.DTOs.Historial
+@using Spendnt.Shared.DTOs.Categoria
 @using System.ComponentModel.DataAnnotations
 
 <EditForm Model="Historial" OnValidSubmit="OnValidSubmit">
@@ -7,25 +8,25 @@
 
     <div class="mb-3">
         <label class="form-label">Fecha</label>
-        <InputDate class="form-control" @bind-Value="Historial.Fecha" />
+    <InputDate class="form-control" @bind-Value="Historial.Fecha" />
         <ValidationMessage For="@(() => Historial.Fecha)" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Monto</label>
-        <InputNumber class="form-control" @bind-Value="Historial.Monto" />
+    <InputNumber class="form-control" @bind-Value="Historial.Monto" />
         <ValidationMessage For="@(() => Historial.Monto)" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Tipo (Ej: Ingreso, Egreso)</label>
-        <InputText class="form-control" @bind-Value="Historial.Tipo" />
+    <InputText class="form-control" @bind-Value="Historial.Tipo" />
         <ValidationMessage For="@(() => Historial.Tipo)" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">Descripción (Opcional)</label>
-        <InputTextArea class="form-control" @bind-Value="Historial.Descripcion" />
+    <InputTextArea class="form-control" @bind-Value="Historial.Descripcion" />
         <ValidationMessage For="@(() => Historial.Descripcion)" />
     </div>
 
@@ -38,7 +39,7 @@
             }
             else
             {
-                <InputSelect class="form-control" @bind-Value="Historial.CategoriaId">
+                <InputSelect class="form-control" @bind-Value="Historial.CategoriaId" TValue="int">
                     <option value="0">-- Seleccione una categoría --</option>
                     @foreach (var cat in Categorias)
                     {
@@ -55,13 +56,19 @@
 </EditForm>
 
 @code {
-    [Parameter] public Historial Historial { get; set; } = new();
-    [Parameter] public List<Categoria>? Categorias { get; set; }
-    [Parameter] public EventCallback OnValidSubmit { get; set; }
+#nullable enable
+    [Parameter]
+    public HistorialUpdateDto Historial { get; set; } = new();
+
+    [Parameter]
+    public List<CategoriaDto>? Categorias { get; set; }
+
+    [Parameter]
+    public EventCallback OnValidSubmit { get; set; }
 
     protected override void OnParametersSet()
     {
-        if (Historial != null && Historial.Fecha == DateTime.MinValue)
+        if (Historial.Fecha == DateTime.MinValue)
         {
             Historial.Fecha = DateTime.Today;
         }

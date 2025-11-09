@@ -1,13 +1,14 @@
 ﻿// Spendnt.API/Controllers/IngresosController.cs
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Spendnt.API.Data;
-using Spendnt.Shared.Entities;
+using Spendnt.API.Application.Interfaces;
+using Spendnt.Shared.DTOs.Ingreso;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Spendnt.API.Controllers
 {
@@ -16,47 +17,38 @@ namespace Spendnt.API.Controllers
     [Route("/api/Ingresos")]
     public class IngresosController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly IIngresoService _ingresoService;
 
-        public IngresosController(DataContext context)
+        public IngresosController(IIngresoService ingresoService)
         {
-            _context = context;
+            _ingresoService = ingresoService;
         }
 
-        private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+        private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Ingresos>>> Get()
+        public async Task<ActionResult<IEnumerable<IngresoDto>>> Get()
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var saldoUsuarioId = await _context.Saldo
-                                        .Where(s => s.UserId == userId)
-                                        .Select(s => s.Id)
-                                        .FirstOrDefaultAsync();
-            if (saldoUsuarioId == 0)
+            if (string.IsNullOrEmpty(userId))
             {
-                return Ok(new List<Ingresos>());
+                return Unauthorized();
             }
 
-            return Ok(await _context.Ingresos
-                                 .Where(i => i.SaldoId == saldoUsuarioId)
-                                 .Include(i => i.Categoria)
-                                 .OrderByDescending(i => i.Fecha)
-                                 .ToListAsync());
+            var ingresos = await _ingresoService.GetAsync(userId);
+            return Ok(ingresos);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Ingresos>> Get(int id)
+        public async Task<ActionResult<IngresoDto>> Get(int id)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var ingreso = await _context.Ingresos
-                                        .Include(i => i.Categoria)
-                                        .FirstOrDefaultAsync(i => i.Id == id && i.Saldo.UserId == userId);
-
+            var ingreso = await _ingresoService.GetByIdAsync(userId, id);
             if (ingreso == null)
             {
                 return NotFound();
@@ -65,61 +57,42 @@ namespace Spendnt.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Ingresos>> Post(Ingresos ingreso)
+        public async Task<ActionResult<IngresoDto>> Post(IngresoCreateDto ingresoDto)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var saldoPrincipal = await _context.Saldo.FirstOrDefaultAsync(s => s.UserId == userId);
-            if (saldoPrincipal == null)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest("Error crítico: No se encontró un saldo principal para el usuario actual para asociar el ingreso.");
+                return Unauthorized();
             }
-            ingreso.SaldoId = saldoPrincipal.Id;
 
-            _context.Ingresos.Add(ingreso);
             try
             {
-                await _context.SaveChangesAsync();
+                var created = await _ingresoService.CreateAsync(userId, ingresoDto);
+                return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
             }
-            catch (DbUpdateException ex)
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrió un error al guardar el ingreso.");
             }
-            return CreatedAtAction(nameof(Get), new { id = ingreso.Id }, ingreso);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Put(int id, Ingresos ingreso)
+        public async Task<IActionResult> Put(int id, IngresoUpdateDto ingresoDto)
         {
-            if (id != ingreso.Id)
-            {
-                return BadRequest("El ID del ingreso en la ruta no coincide con el del cuerpo de la solicitud.");
-            }
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var existingIngreso = await _context.Ingresos
-                                                .AsNoTracking()
-                                                .FirstOrDefaultAsync(i => i.Id == id && i.Saldo.UserId == userId);
-            if (existingIngreso == null)
+            var updated = await _ingresoService.UpdateAsync(userId, id, ingresoDto);
+            if (!updated)
             {
                 return NotFound("Ingreso no encontrado o no pertenece al usuario.");
-            }
-            ingreso.SaldoId = existingIngreso.SaldoId;
-            _context.Entry(ingreso).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await _context.Ingresos.AnyAsync(e => e.Id == id)) return NotFound();
-                else throw;
-            }
-            catch (DbUpdateException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Ocurrió un error al actualizar el ingreso.");
             }
             return NoContent();
         }
@@ -128,16 +101,16 @@ namespace Spendnt.API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-            var ingreso = await _context.Ingresos
-                                      .FirstOrDefaultAsync(i => i.Id == id && i.Saldo.UserId == userId);
-            if (ingreso == null)
+            var deleted = await _ingresoService.DeleteAsync(userId, id);
+            if (!deleted)
             {
                 return NotFound();
             }
-            _context.Ingresos.Remove(ingreso);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
     }

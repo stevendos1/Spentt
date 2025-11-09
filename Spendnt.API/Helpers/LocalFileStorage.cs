@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Hosting; // Para IWebHostEnvironment
+using System;
 using System.IO;
 using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Spendnt.API.Helpers
 {
@@ -15,9 +18,9 @@ namespace Spendnt.API.Helpers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task DeleteFileAsync(string filePath, string containerName)
+        public Task DeleteFileAsync(string filePath, string containerName)
         {
-            if (string.IsNullOrEmpty(filePath)) return;
+            if (string.IsNullOrEmpty(filePath)) return Task.CompletedTask;
 
             var fileName = Path.GetFileName(filePath); 
             var directoryPath = Path.Combine(_env.WebRootPath, containerName);
@@ -27,6 +30,8 @@ namespace Spendnt.API.Helpers
             {
                 File.Delete(fullPath);
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task<string> SaveFileAsync(byte[] content, string extension, string containerName)
@@ -42,7 +47,8 @@ namespace Spendnt.API.Helpers
             await File.WriteAllBytesAsync(savingPath, content);
 
             // Construir la URL relativa para acceder al archivo
-            var request = _httpContextAccessor.HttpContext.Request;
+            var request = _httpContextAccessor.HttpContext?.Request
+                          ?? throw new InvalidOperationException("There is no active HTTP context to build the file URL.");
             var url = $"{request.Scheme}://{request.Host}{request.PathBase}/{containerName}/{fileName}";
             return url;
         }

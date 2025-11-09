@@ -1,7 +1,8 @@
 ﻿@page "/historiales/edit/{Id:int}"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Historial
+@using Spendnt.Shared.DTOs.Categoria
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -13,7 +14,7 @@
 
 <h3>Editar Transacción del Historial</h3>
 
-@if (historialModel == null && !loadFailed)
+@if (historialModel is null && !loadFailed)
 {
     <p><em>Cargando transacción...</em></p>
 }
@@ -21,46 +22,40 @@ else if (loadFailed)
 {
     <div class="alert alert-danger">No se pudo cargar la transacción para editar.</div>
 }
-else if (historialModel != null)
+else if (historialModel is not null)
 {
-    <HistorialForm Historial="historialModel" Categorias="listaCategorias" OnValidSubmit="Guardar" />
+    <HistorialForm Historial="historialModel!" Categorias="listaCategorias" OnValidSubmit="Guardar" />
 }
 
 @code {
+#nullable enable
     [Parameter] public int Id { get; set; }
-    private Historial? historialModel;
-    private List<Categoria> listaCategorias = new();
+    private HistorialUpdateDto? historialModel;
+    private List<CategoriaDto> listaCategorias = new();
     private bool loadFailed = false;
-    private bool isLoadingCategorias = true;
-    private bool isLoadingHistorial = true;
 
     protected override async Task OnInitializedAsync()
     {
-        isLoadingHistorial = true;
-        isLoadingCategorias = true;
         loadFailed = false;
 
         var categoriasTask = CargarCategorias();
         var historialTask = CargarHistorial();
 
         await Task.WhenAll(categoriasTask, historialTask);
-
-        isLoadingHistorial = false;
-        isLoadingCategorias = false;
     }
 
     private async Task CargarCategorias()
     {
         try
         {
-            var responseHttp = await repository.GetAsync<List<Categoria>>("/api/Categorias");
+            var responseHttp = await repository.GetAsync<List<CategoriaDto>>("/api/Categorias");
             if (responseHttp.Error)
             {
                 await Swal.FireAsync("Error", $"No se pudieron cargar las categorías: {await responseHttp.GetErrorMessageAsync()}", SweetAlertIcon.Error);
             }
             else
             {
-                listaCategorias = responseHttp.Response ?? new List<Categoria>();
+                listaCategorias = responseHttp.Response ?? new List<CategoriaDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -77,7 +72,7 @@ else if (historialModel != null)
     {
         try
         {
-            var responseHttp = await repository.GetAsync<Historial>($"api/Historiales/{Id}");
+            var responseHttp = await repository.GetAsync<HistorialDto>($"api/Historiales/{Id}");
             if (responseHttp.Error)
             {
                 loadFailed = true;
@@ -92,8 +87,22 @@ else if (historialModel != null)
             }
             else
             {
-                historialModel = responseHttp.Response;
-                if (historialModel == null) loadFailed = true;
+                var historialDetalle = responseHttp.Response;
+                if (historialDetalle == null)
+                {
+                    loadFailed = true;
+                }
+                else
+                {
+                    historialModel = new HistorialUpdateDto
+                    {
+                        Fecha = historialDetalle.Fecha,
+                        Monto = historialDetalle.Monto,
+                        Tipo = historialDetalle.Tipo,
+                        Descripcion = historialDetalle.Descripcion,
+                        CategoriaId = historialDetalle.CategoriaId
+                    };
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -110,8 +119,13 @@ else if (historialModel != null)
 
     private async Task Guardar()
     {
-        if (historialModel == null) return;
-        var response = await repository.PutAsync($"/api/Historiales/{historialModel.Id}", historialModel);
+        if (historialModel is null)
+        {
+            await Swal.FireAsync("Error", "No se pudo cargar el historial para actualizar.", SweetAlertIcon.Error);
+            return;
+        }
+
+        var response = await repository.PutAsync($"/api/Historiales/{Id}", historialModel);
         if (response.Error)
         {
             var mensaje = await response.GetErrorMessageAsync();

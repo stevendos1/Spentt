@@ -1,71 +1,160 @@
-﻿.nav-item > ::deep a.nav-link,
-.nav-item > .btn-logout-style {
-    color: rgba(255, 255, 255, 0.8);
+﻿.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    height: 100%;
+}
+
+.nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.nav-link {
     display: flex;
     align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
     text-decoration: none;
-    padding: 0.65rem 1rem;
-    border-radius: 4px;
-    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    color: rgba(248, 248, 248, 0.78);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    letter-spacing: 0.01em;
+    font-size: 0.97rem;
+}
+
+.nav-link .bi {
+    font-size: 1.2rem;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    transform: translateX(4px);
+}
+
+.nav-link.active {
+    background-color: #ffffff;
+    color: #111111;
+    font-weight: 600;
+}
+
+.user-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+.user-card-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.avatar.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.65rem;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: capitalize;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-email {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-link {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.user-card-link .bi-chevron-right {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.9rem;
+}
+
+.nav-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logout-button {
     width: 100%;
-    box-sizing: border-box;
-}
-
-    .nav-item > ::deep a.nav-link:hover,
-    .nav-item > ::deep a.nav-link.active,
-    .nav-item > .btn-logout-style:hover,
-    .nav-item > .btn-logout-style:focus {
-        color: white;
-        background-color: rgba(255, 255, 255, 0.15);
-    }
-
-.btn-logout-style {
-    background-color: transparent;
-    border: none;
-    text-align: left;
-    line-height: normal;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
     cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
-    .btn-logout-style:focus {
-        outline: none;
-        box-shadow: none;
+.logout-button .bi {
+    font-size: 1.05rem;
+}
+
+.logout-button:hover,
+.logout-button:focus {
+    background: #ffffff;
+    color: #111111;
+    transform: translateY(-1px);
+    border-color: #ffffff;
+}
+
+@media (max-width: 991.98px) {
+    .nav-menu {
+        gap: 1.4rem;
     }
 
-.nav-item > ::deep a.nav-link .bi,
-.nav-item > .btn-logout-style .bi {
-    font-size: 1.1rem;
-    margin-right: 0.85rem;
-}
-
-.nav-separator-top,
-.nav-separator-bottom {
-    border-color: rgba(255,255,255,0.1) !important;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.nav-separator-top {
-    margin-bottom: 0.25rem;
-}
-
-.nav-separator-bottom {
-    margin-top: 0.25rem;
-}
-
-.user-profile-section ::deep a.nav-link,
-.user-profile-section .user-name,
-.user-profile-section .view-profile-link {
-}
-
-    .user-profile-section ::deep a.nav-link.view-profile-link-style {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-        justify-content: center;
-        color: rgba(255,255,255,.6);
+    .user-card {
+        padding: 0.9rem;
     }
 
-        .user-profile-section ::deep a.nav-link.view-profile-link-style:hover {
-            color: rgba(255,255,255,.9);
-            background-color: rgba(255,255,255,.1);
-        }
+    .nav-link {
+        padding: 0.7rem 0.85rem;
+    }
+}

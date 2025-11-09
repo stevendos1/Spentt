@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "HkSYsTAGjLo=",
+  "dgSpecHash": "meV2QE3tpsk=",
   "success": true,
-  "projectFilePath": "C:\\Users\\steve\\OneDrive\\Documents\\2025-2\\desarrollo web\\Spendnt.API\\Spendnt.API.csproj",
+  "projectFilePath": "C:\\cruds\\spent-original\\Spendnt\\Spendnt.API\\Spendnt.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\steve\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\steve\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

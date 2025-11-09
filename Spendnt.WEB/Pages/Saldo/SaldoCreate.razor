@@ -1,7 +1,7 @@
 ﻿@page "/Saldo/create"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Saldo
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -14,22 +14,70 @@
 <h3>Crear/Inicializar Saldo</h3>
 <p class="text-muted">Nota: Generalmente, el saldo principal se crea automáticamente al registrar un nuevo usuario o con la primera transacción. Esta página podría ser para casos especiales o si se permite más de un saldo por usuario (lo cual no es el modelo actual).</p>
 
-@if (saldoModel == null)
+@if (saldoDetalle is null && !loadFailed)
 {
     <p><em>Inicializando...</em></p>
 }
+else if (loadFailed)
+{
+    <div class="alert alert-danger">No se pudo cargar información de saldo para inicializar.</div>
+}
 else
 {
-    <SaldoForm @ref="saldoForm" Saldo="saldoModel" OnSubmit="HandleCreate" ReturnAction="Return" />
+    <SaldoForm @ref="saldoForm" Saldo="saldoUpdateModel" OnSubmit="HandleCreate" ReturnAction="Return" />
 }
 
 @code {
-    private Saldo saldoModel = new();
+#nullable enable
+    private SaldoDto? saldoDetalle;
+    private SaldoUpdateDto saldoUpdateModel = new();
     private SaldoForm? saldoForm;
+    private bool loadFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var responseHttp = await repository.GetAsync<SaldoDto>("/api/Saldo/actual");
+            if (responseHttp.Error)
+            {
+                loadFailed = true;
+                var mensaje = await responseHttp.GetErrorMessageAsync();
+                await sweetAlertService.FireAsync("Error", $"No se pudo obtener el saldo actual: {mensaje}", SweetAlertIcon.Error);
+                return;
+            }
+
+            saldoDetalle = responseHttp.Response;
+            if (saldoDetalle is null)
+            {
+                loadFailed = true;
+            }
+            else
+            {
+                saldoUpdateModel = new SaldoUpdateDto { TotalSaldo = saldoDetalle.TotalSaldo };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            loadFailed = true;
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            await sweetAlertService.FireAsync("Error", $"Error inesperado al cargar el saldo: {ex.Message}", SweetAlertIcon.Error);
+        }
+    }
 
     private async Task HandleCreate()
     {
-        var responseHttp = await repository.PostAsync("/api/Saldo", saldoModel);
+        if (saldoDetalle is null)
+        {
+            await sweetAlertService.FireAsync("Error", "No hay un saldo inicial para actualizar.", SweetAlertIcon.Warning);
+            return;
+        }
+
+        var responseHttp = await repository.PutAsync($"/api/Saldo/{saldoDetalle.Id}", saldoUpdateModel);
         if (responseHttp.Error)
         {
             var mensaje = await responseHttp.GetErrorMessageAsync();
@@ -37,7 +85,7 @@ else
             return;
         }
 
-        await sweetAlertService.FireAsync("Éxito", "Saldo creado/inicializado correctamente.", SweetAlertIcon.Success);
+        await sweetAlertService.FireAsync("Éxito", "Saldo actualizado correctamente.", SweetAlertIcon.Success);
         navigationManager.NavigateTo("/Saldo");
     }
 

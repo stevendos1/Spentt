@@ -1,18 +1,21 @@
 ﻿// Spendnt.API/Controllers/AuthController.cs
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration; 
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Spendnt.API.Data;
 using Spendnt.Shared.DTOs;
 using Spendnt.Shared.Entities;
 using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt; 
-using System.Linq; 
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-using Spendnt.API.Data; 
+
+#nullable enable
 
 namespace Spendnt.API.Controllers
 {
@@ -23,13 +26,13 @@ namespace Spendnt.API.Controllers
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IConfiguration _configuration;
-        private readonly DataContext _context; 
+    private readonly IApplicationDbContext _context; 
 
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             IConfiguration configuration,
-            DataContext context)
+            IApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,6 +43,8 @@ namespace Spendnt.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterDto model)
         {
+            ArgumentNullException.ThrowIfNull(model);
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -57,7 +62,7 @@ namespace Spendnt.API.Controllers
                 return StatusCode(StatusCodes.Status409Conflict, new { Message = "El nombre de usuario ya existe." });
             }
 
-            User user = new User()
+            var user = new User()
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(), 
@@ -91,6 +96,8 @@ namespace Spendnt.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto model)
         {
+            ArgumentNullException.ThrowIfNull(model);
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -100,11 +107,15 @@ namespace Spendnt.API.Controllers
 
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                var userId = user.Id;
+                var userName = user.UserName ?? throw new InvalidOperationException("El usuario no tiene un nombre de usuario configurado.");
+                var userEmail = user.Email ?? throw new InvalidOperationException("El usuario no tiene un correo electrónico configurado.");
+
                 var authClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id), 
-                    new Claim(ClaimTypes.Name, user.UserName),     
-                    new Claim(JwtRegisteredClaimNames.Email, user.Email), 
+                    new Claim(ClaimTypes.NameIdentifier, userId),
+                    new Claim(ClaimTypes.Name, userName),
+                    new Claim(JwtRegisteredClaimNames.Email, userEmail),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                     new Claim("firstName", user.FirstName ?? ""),
                     new Claim("lastName", user.LastName ?? ""),
@@ -121,7 +132,9 @@ namespace Spendnt.API.Controllers
                     authClaims.Add(new Claim(ClaimTypes.Role, userRole));
                 }
 
-                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+                var jwtSecret = _configuration["JWT:Secret"]
+                                ?? throw new InvalidOperationException("JWT secret not configured.");
+                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
@@ -139,11 +152,11 @@ namespace Spendnt.API.Controllers
                 {
                     token = tokenHandler.WriteToken(token),
                     expiration = tokenDescriptor.Expires,
-                    userId = user.Id,
-                    userName = user.UserName,
+                    userId,
+                    userName,
                     firstName = user.FirstName,
                     lastName = user.LastName,
-                    email = user.Email,
+                    email = userEmail,
                     profilePictureUrl = user.ProfilePictureUrl, 
                     roles = userRoles
                 });

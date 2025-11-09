@@ -2,7 +2,7 @@
 @attribute [Authorize]
 
 @using CurrieTechnologies.Razor.SweetAlert2
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Ingreso
 @using Spendnt.WEB.Repositories
 @using Spendnt.WEB.Shared
 @using Microsoft.AspNetCore.Authorization
@@ -45,9 +45,9 @@
                 @foreach (var ingresoItem in listaIngresos!)
                 {
                     <tr>
-                        <td>@ingresoItem.Ingreso.ToString("C")</td>
+                        <td>@ingresoItem.Monto.ToString("C")</td>
                         <td>@ingresoItem.Fecha.ToString("dd/MM/yyyy")</td>
-                        <td>@ingresoItem.Categoria?.Nombre</td>
+                        <td>@ingresoItem.CategoriaNombre</td>
                         <td>
                             <a href="/Ingresos/edit/@ingresoItem.Id" class="btn btn-warning btn-sm me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
                             <button class="btn btn-danger btn-sm" @onclick=@(() => DeleteAsync(ingresoItem)) title="Borrar"><i class="bi bi-trash3-fill"></i></button>
@@ -60,9 +60,8 @@
 </GenericList>
 
 @code {
-    private List<Ingresos>? listaIngresos;
-    private bool isLoading = true;
-    private bool loadFailed = false;
+    #nullable enable
+    private List<IngresoDto>? listaIngresos;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,49 +70,43 @@
 
     private async Task LoadIngresos()
     {
-        isLoading = true;
-        loadFailed = false;
         StateHasChanged();
 
         try
         {
-            var responseHttp = await repository.GetAsync<List<Ingresos>>("/api/Ingresos");
+            var responseHttp = await repository.GetAsync<List<IngresoDto>>("/api/Ingresos");
             if (responseHttp.Error)
             {
-                loadFailed = true;
                 var mensajeError = await responseHttp.GetErrorMessageAsync();
                 await swal.FireAsync("Error", $"No se pudieron cargar los ingresos: {mensajeError}", SweetAlertIcon.Error);
-                listaIngresos = new List<Ingresos>();
+                listaIngresos = new List<IngresoDto>();
             }
             else
             {
-                listaIngresos = responseHttp.Response ?? new List<Ingresos>();
+                listaIngresos = responseHttp.Response ?? new List<IngresoDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
-            loadFailed = true;
             exception.Redirect();
         }
         catch (Exception ex)
         {
-            loadFailed = true;
             await swal.FireAsync("Error", $"Error inesperado al cargar ingresos: {ex.Message}", SweetAlertIcon.Error);
-            listaIngresos = new List<Ingresos>();
+            listaIngresos = new List<IngresoDto>();
         }
         finally
         {
-            isLoading = false;
             StateHasChanged();
         }
     }
 
-    private async Task DeleteAsync(Ingresos ingresoParaBorrar)
+    private async Task DeleteAsync(IngresoDto ingresoParaBorrar)
     {
         var result = await swal.FireAsync(new SweetAlertOptions
             {
                 Title = "Confirmación",
-                Text = $"¿Estás seguro de que quieres borrar el ingreso de {ingresoParaBorrar.Ingreso:C} del {ingresoParaBorrar.Fecha:dd/MM/yyyy}?",
+                Text = $"¿Estás seguro de que quieres borrar el ingreso de {ingresoParaBorrar.Monto:C} del {ingresoParaBorrar.Fecha:dd/MM/yyyy}?",
                 Icon = SweetAlertIcon.Warning,
                 ShowCancelButton = true,
                 ConfirmButtonText = "Sí, borrar",

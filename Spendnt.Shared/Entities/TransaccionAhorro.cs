@@ -14,9 +14,7 @@ namespace Spendnt.Shared.Entities
         public int MetaAhorroId { get; set; }
 
         [JsonIgnore]
-        public MetaAhorro MetaAhorro { get; set; }
-
-        [Required(ErrorMessage = "El monto de la transacción es obligatorio.")]
+        public MetaAhorro? MetaAhorro { get; set; }        [Required(ErrorMessage = "El monto de la transacción es obligatorio.")]
         [Column(TypeName = "decimal(18,2)")]
         [Display(Name = "Monto")]
         public decimal Monto { get; set; }
@@ -26,6 +24,6 @@ namespace Spendnt.Shared.Entities
         public DateTime Fecha { get; set; } = DateTime.UtcNow;
 
         [MaxLength(200)]
-        public string Descripcion { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
     }
 }

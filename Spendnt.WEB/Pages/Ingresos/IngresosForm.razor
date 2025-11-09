@@ -1,23 +1,24 @@
-﻿@using Spendnt.Shared.Entities
+﻿@using Spendnt.Shared.DTOs.Ingreso
+@using Spendnt.Shared.DTOs.Categoria
 @using System.ComponentModel.DataAnnotations
 
-<EditForm Model="Ingresos" OnSubmit="OnSubmit">
+<EditForm Model="Ingreso" OnSubmit="OnSubmit">
     <DataAnnotationsValidator />
     @* <ValidationSummary /> *@
 
     <div class="mb-3">
         <label class="form-label">Monto del Ingreso</label>
         <div>
-            <InputNumber class="form-control" @bind-Value="Ingresos.Ingreso" />
-            <ValidationMessage For="@(() => Ingresos.Ingreso)" />
+            <InputNumber class="form-control" @bind-Value="Ingreso.Monto" />
+            <ValidationMessage For="@(() => Ingreso.Monto)" />
         </div>
     </div>
 
     <div class="mb-3">
         <label class="form-label">Fecha</label>
         <div>
-            <InputDate class="form-control" @bind-Value="Ingresos.Fecha" />
-            <ValidationMessage For="@(() => Ingresos.Fecha)" />
+            <InputDate class="form-control" @bind-Value="Ingreso.Fecha" />
+            <ValidationMessage For="@(() => Ingreso.Fecha)" />
         </div>
     </div>
 
@@ -30,14 +31,14 @@
             }
             else
             {
-                <InputSelect class="form-control" @bind-Value="Ingresos.CategoriaId">
+                <InputSelect class="form-control" @bind-Value="Ingreso.CategoriaId">
                     <option value="0">-- Seleccione una categoría --</option>
                     @foreach (var categoria in Categorias)
                     {
                         <option value="@categoria.Id">@categoria.Nombre</option>
                     }
                 </InputSelect>
-                <ValidationMessage For="@(() => Ingresos.CategoriaId)" />
+                <ValidationMessage For="@(() => Ingreso.CategoriaId)" />
             }
         </div>
     </div>
@@ -47,12 +48,13 @@
 </EditForm>
 
 @code {
+#nullable enable
     [EditorRequired]
     [Parameter]
-    public Ingresos Ingresos { get; set; } = new();
+    public IngresoUpdateDto Ingreso { get; set; } = new();
 
     [Parameter]
-    public List<Categoria>? Categorias { get; set; }
+    public List<CategoriaDto>? Categorias { get; set; }
 
     [EditorRequired]
     [Parameter]
@@ -64,9 +66,9 @@
 
     protected override void OnParametersSet()
     {
-        if (Ingresos != null && Ingresos.Fecha == DateTime.MinValue)
+        if (Ingreso.Fecha == DateTime.MinValue)
         {
-            Ingresos.Fecha = DateTime.Today;
+            Ingreso.Fecha = DateTime.Today;
         }
     }
 }

@@ -13,12 +13,10 @@ namespace Spendnt.Shared.Entities
         [Required(ErrorMessage = "El nombre de la meta es obligatorio.")]
         [MaxLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres.")]
         [Display(Name = "Nombre de la Meta")]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
 
         [MaxLength(500, ErrorMessage = "La descripción no puede exceder los 500 caracteres.")]
-        public string Descripcion { get; set; }
-
-        [Required(ErrorMessage = "El monto objetivo es obligatorio.")]
+        public string? Descripcion { get; set; }        [Required(ErrorMessage = "El monto objetivo es obligatorio.")]
         [Column(TypeName = "decimal(18,2)")]
         [Range(0.01, double.MaxValue, ErrorMessage = "El monto objetivo debe ser mayor a cero.")]
         [Display(Name = "Monto Objetivo")]
@@ -41,10 +39,10 @@ namespace Spendnt.Shared.Entities
 
       
         [Required]
-        public string UserId { get; set; } 
+        public string UserId { get; set; } = string.Empty;
 
         [JsonIgnore]
         [ForeignKey("UserId")]
-        public virtual User User { get; set; } 
+        public virtual User? User { get; set; }
     }
 }

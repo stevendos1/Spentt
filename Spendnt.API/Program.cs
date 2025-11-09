@@ -1,15 +1,38 @@
-using Microsoft.EntityFrameworkCore;
-using Spendnt.API.Data;
-using Spendnt.Shared.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Spendnt.API.Application.Interfaces;
+using Spendnt.API.Application.Services;
+using Spendnt.API.Data;
+using Spendnt.API.Helpers;
+using Spendnt.API.Infrastructure.Repositories;
+using Spendnt.Shared.Entities;
 using System.Text;
 using System.Text.Json.Serialization;
-using Spendnt.API.Helpers; 
-using Microsoft.AspNetCore.Http;
+
+#nullable enable
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+var allowedCorsOrigins = new[]
+{
+    "https://localhost:8000",
+    "http://localhost:5047"
+};
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy.WithOrigins(allowedCorsOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 
 builder.Services.AddDbContext<DataContext>(x =>
@@ -42,15 +65,22 @@ builder.Services.AddAuthentication(options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+    var jwtSecret = builder.Configuration["JWT:Secret"]
+                    ?? throw new InvalidOperationException("JWT secret not configured.");
+    var jwtIssuer = builder.Configuration["JWT:ValidIssuer"]
+                    ?? throw new InvalidOperationException("JWT issuer not configured.");
+    var jwtAudience = builder.Configuration["JWT:ValidAudience"]
+                    ?? throw new InvalidOperationException("JWT audience not configured.");
+
     options.TokenValidationParameters = new TokenValidationParameters()
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-        ValidAudience = builder.Configuration["JWT:ValidAudience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]))
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
 });
 
@@ -98,6 +128,21 @@ builder.Services.AddScoped<SeedDB>();
 
 builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddScoped<IFileStorage, LocalFileStorage>();
+// Mapear la abstracci√≥n del contexto a la implementaci√≥n concreta
+builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<DataContext>());
+
+// Registrar repositorios y servicios
+builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
+builder.Services.AddScoped<CategoriaService>();
+builder.Services.AddScoped<IMetaAhorroService, MetaAhorroService>();
+builder.Services.AddScoped<IEgresoService, EgresoService>();
+builder.Services.AddScoped<IIngresoService, IngresoService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IHistorialService, HistorialService>();
+builder.Services.AddScoped<IRecordatorioGastoService, RecordatorioGastoService>();
+builder.Services.AddScoped<ICalendarioEventosService, CalendarioEventosService>();
+builder.Services.AddScoped<ISaldoService, SaldoService>();
+builder.Services.AddScoped<ITransaccionAhorroService, TransaccionAhorroService>();
 
 var app = builder.Build();
 
@@ -115,7 +160,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "OcurriÛ un error durante la inicializaciÛn de datos (seeding).");
+        logger.LogError(ex, "OcurriÔøΩ un error durante la inicializaciÔøΩn de datos (seeding).");
     }
 }
 
@@ -133,11 +178,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles(); 
 
-app.UseCors(x => x
-    .AllowAnyMethod()
-    .AllowAnyHeader()
-    .SetIsOriginAllowed(origin => true)
-    .AllowCredentials());
+app.UseCors("FrontendPolicy");
 
 app.UseRouting();
 

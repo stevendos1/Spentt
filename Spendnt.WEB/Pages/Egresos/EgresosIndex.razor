@@ -2,7 +2,7 @@
 @attribute [Authorize]
 
 @using CurrieTechnologies.Razor.SweetAlert2
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Egreso
 @using Spendnt.WEB.Repositories
 @using Spendnt.WEB.Shared
 @using Microsoft.AspNetCore.Authorization
@@ -45,9 +45,9 @@
                 @foreach (var egresoItem in listaEgresos!)
                 {
                     <tr>
-                        <td>@egresoItem.Egreso.ToString("C")</td>
+                        <td>@egresoItem.Monto.ToString("C")</td>
                         <td>@egresoItem.Fecha.ToString("dd/MM/yyyy")</td>
-                        <td>@egresoItem.Categoria?.Nombre</td>
+                        <td>@egresoItem.CategoriaNombre</td>
                         <td>
                             <a href="/Egresos/edit/@egresoItem.Id" class="btn btn-warning btn-sm me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
                             <button class="btn btn-danger btn-sm" @onclick=@(() => DeleteAsync(egresoItem)) title="Borrar"><i class="bi bi-trash3-fill"></i></button>
@@ -60,9 +60,8 @@
 </GenericList>
 
 @code {
-    private List<Egresos>? listaEgresos;
-    private bool isLoading = true;
-    private bool loadFailed = false;
+#nullable enable
+    private List<EgresoDto>? listaEgresos;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,49 +70,43 @@
 
     private async Task LoadEgresos()
     {
-        isLoading = true;
-        loadFailed = false;
         StateHasChanged();
 
         try
         {
-            var responseHttp = await repository.GetAsync<List<Egresos>>("/api/Egresos");
+            var responseHttp = await repository.GetAsync<List<EgresoDto>>("/api/Egresos");
             if (responseHttp.Error)
             {
-                loadFailed = true;
                 var mensajeError = await responseHttp.GetErrorMessageAsync();
                 await swal.FireAsync("Error", $"No se pudieron cargar los egresos: {mensajeError}", SweetAlertIcon.Error);
-                listaEgresos = new List<Egresos>();
+                listaEgresos = new List<EgresoDto>();
             }
             else
             {
-                listaEgresos = responseHttp.Response ?? new List<Egresos>();
+                listaEgresos = responseHttp.Response ?? new List<EgresoDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
-            loadFailed = true;
             exception.Redirect();
         }
         catch (Exception ex)
         {
-            loadFailed = true;
             await swal.FireAsync("Error", $"Error inesperado al cargar egresos: {ex.Message}", SweetAlertIcon.Error);
-            listaEgresos = new List<Egresos>();
+            listaEgresos = new List<EgresoDto>();
         }
         finally
         {
-            isLoading = false;
             StateHasChanged();
         }
     }
 
-    private async Task DeleteAsync(Egresos egresoParaBorrar)
+    private async Task DeleteAsync(EgresoDto egresoParaBorrar)
     {
         var result = await swal.FireAsync(new SweetAlertOptions
             {
                 Title = "Confirmación",
-                Text = $"¿Estás seguro de que quieres borrar el egreso de {egresoParaBorrar.Egreso:C} del {egresoParaBorrar.Fecha:dd/MM/yyyy}?",
+                Text = $"¿Estás seguro de que quieres borrar el egreso de {egresoParaBorrar.Monto:C} del {egresoParaBorrar.Fecha:dd/MM/yyyy}?",
                 Icon = SweetAlertIcon.Warning,
                 ShowCancelButton = true,
                 ConfirmButtonText = "Sí, borrar",

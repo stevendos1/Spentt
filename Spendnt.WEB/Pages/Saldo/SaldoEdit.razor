@@ -1,7 +1,7 @@
 ﻿@page "/Saldo/edit/{Id:int}"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Saldo
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -13,7 +13,7 @@
 
 <h3>Editar Saldo Manual</h3>
 
-@if (saldoModel == null && !loadFailed)
+@if (saldoDetalle is null && !loadFailed)
 {
     <p><em>Cargando saldo...</em></p>
 }
@@ -23,25 +23,25 @@ else if (loadFailed)
 }
 else
 {
-    <SaldoForm @ref="saldoForm" Saldo="saldoModel" OnSubmit="HandleEdit" ReturnAction="Return" />
+    <SaldoForm @ref="saldoForm" Saldo="saldoUpdateModel" OnSubmit="HandleEdit" ReturnAction="Return" />
 }
 
 @code {
+#nullable enable
     [Parameter]
     public int Id { get; set; }
 
-    private Saldo? saldoModel;
+    private SaldoDto? saldoDetalle;
+    private SaldoUpdateDto saldoUpdateModel = new();
     private SaldoForm? saldoForm;
     private bool loadFailed;
-    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
         loadFailed = false;
         try
         {
-            var responseHTTP = await repository.GetAsync<Saldo>($"/api/Saldo/{Id}");
+            var responseHTTP = await repository.GetAsync<SaldoDto>($"/api/Saldo/{Id}");
 
             if (responseHTTP.Error)
             {
@@ -59,8 +59,15 @@ else
             }
             else
             {
-                saldoModel = responseHTTP.Response;
-                if (saldoModel == null) loadFailed = true;
+                saldoDetalle = responseHTTP.Response;
+                if (saldoDetalle is null)
+                {
+                    loadFailed = true;
+                }
+                else
+                {
+                    saldoUpdateModel = new SaldoUpdateDto { TotalSaldo = saldoDetalle.TotalSaldo };
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -73,17 +80,17 @@ else
             loadFailed = true;
             await swal.FireAsync("Error", $"Error inesperado al cargar el saldo: {ex.Message}", SweetAlertIcon.Error);
         }
-        finally
-        {
-            isLoading = false;
-        }
     }
 
     private async Task HandleEdit()
     {
-        if (saldoModel == null) return;
+        if (saldoDetalle is null)
+        {
+            await swal.FireAsync("Error", "No se encontró información del saldo para actualizar.", SweetAlertIcon.Error);
+            return;
+        }
 
-        var responseHTTP = await repository.PutAsync($"/api/Saldo/{saldoModel.Id}", saldoModel);
+        var responseHTTP = await repository.PutAsync($"/api/Saldo/{saldoDetalle.Id}", saldoUpdateModel);
 
         if (responseHTTP.Error)
         {

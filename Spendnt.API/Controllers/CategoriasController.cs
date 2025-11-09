@@ -1,11 +1,12 @@
 ﻿// Spendnt.API/Controllers/CategoriasController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Spendnt.API.Data;
-using Spendnt.Shared.Entities;
-using System.Threading.Tasks;
+using Spendnt.API.Application.Services;
+using Spendnt.Shared.DTOs.Categoria;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Spendnt.API.Controllers
 {
@@ -14,57 +15,45 @@ namespace Spendnt.API.Controllers
     [Route("api/[controller]")]
     public class CategoriasController : ControllerBase
     {
-        private readonly DataContext _context;
+        private readonly CategoriaService _categoriaService;
 
-        public CategoriasController(DataContext context)
+        public CategoriasController(CategoriaService categoriaService)
         {
-            _context = context;
+            _categoriaService = categoriaService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Categoria>>> Get()
+        public async Task<ActionResult<IEnumerable<CategoriaDto>>> Get()
         {
-            return Ok(await _context.Categorias.ToListAsync());
+            var categorias = await _categoriaService.GetCategoriasAsync();
+            return Ok(categorias);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Categoria>> Get(int id)
+        public async Task<ActionResult<CategoriaDto>> Get(int id)
         {
-            var categoria = await _context.Categorias.FirstOrDefaultAsync(c => c.Id == id);
-            if (categoria == null) return NotFound();
+            var categoria = await _categoriaService.GetCategoriaByIdAsync(id);
+            if (categoria == null)
+            {
+                return NotFound();
+            }
             return Ok(categoria);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Categoria>> Post(Categoria categoria)
+        public async Task<ActionResult<CategoriaDto>> Post(CategoriaCreateDto categoriaDto)
         {
-            _context.Add(categoria);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = categoria.Id }, categoria);
+            var nuevaCategoria = await _categoriaService.CreateCategoriaAsync(categoriaDto);
+            return CreatedAtAction(nameof(Get), new { id = nuevaCategoria.Id }, nuevaCategoria);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Put(int id, Categoria categoria)
+        public async Task<IActionResult> Put(int id, CategoriaCreateDto categoriaDto)
         {
-            if (id != categoria.Id)
+            var result = await _categoriaService.UpdateCategoriaAsync(id, categoriaDto);
+            if (!result)
             {
-                return BadRequest("El ID de la categoría en la ruta no coincide con el del cuerpo.");
-            }
-            _context.Entry(categoria).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await _context.Categorias.AnyAsync(e => e.Id == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound();
             }
             return NoContent();
         }
@@ -72,11 +61,11 @@ namespace Spendnt.API.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var categoria = await _context.Categorias.FindAsync(id);
-            if (categoria == null) return NotFound();
-
-            _context.Remove(categoria);
-            await _context.SaveChangesAsync();
+            var result = await _categoriaService.DeleteCategoriaAsync(id);
+            if (!result)
+            {
+                return NotFound();
+            }
             return NoContent();
         }
     }

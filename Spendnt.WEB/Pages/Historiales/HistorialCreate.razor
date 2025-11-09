@@ -1,7 +1,8 @@
 ﻿@page "/historiales/create"
 @attribute [Authorize]
 
-@using Spendnt.Shared.Entities
+@using Spendnt.Shared.DTOs.Historial
+@using Spendnt.Shared.DTOs.Categoria
 @using Spendnt.WEB.Repositories
 @using CurrieTechnologies.Razor.SweetAlert2
 @using Microsoft.AspNetCore.Authorization
@@ -16,9 +17,9 @@
 <HistorialForm Historial="historialModel" Categorias="listaCategorias" OnValidSubmit="Guardar" />
 
 @code {
-    private Historial historialModel = new();
-    private List<Categoria> listaCategorias = new();
-    private bool isLoadingCategorias = true;
+#nullable enable
+    private HistorialUpdateDto historialModel = new();
+    private List<CategoriaDto> listaCategorias = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,10 +32,9 @@
 
     private async Task CargarCategorias()
     {
-        isLoadingCategorias = true;
         try
         {
-            var responseHttp = await repository.GetAsync<List<Categoria>>("/api/Categorias");
+            var responseHttp = await repository.GetAsync<List<CategoriaDto>>("/api/Categorias");
             if (responseHttp.Error)
             {
                 var mensaje = await responseHttp.GetErrorMessageAsync();
@@ -42,7 +42,7 @@
             }
             else
             {
-                listaCategorias = responseHttp.Response ?? new List<Categoria>();
+                listaCategorias = responseHttp.Response ?? new List<CategoriaDto>();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -53,15 +53,20 @@
         {
             await Swal.FireAsync("Error", $"Error inesperado al cargar categorías: {ex.Message}", SweetAlertIcon.Error);
         }
-        finally
-        {
-            isLoadingCategorias = false;
-        }
     }
 
     private async Task Guardar()
     {
-        var response = await repository.PostAsync("/api/Historiales", historialModel);
+        var createDto = new HistorialCreateDto
+        {
+            Fecha = historialModel.Fecha,
+            Monto = historialModel.Monto,
+            Tipo = historialModel.Tipo,
+            Descripcion = historialModel.Descripcion,
+            CategoriaId = historialModel.CategoriaId
+        };
+
+        var response = await repository.PostAsync("/api/Historiales", createDto);
         if (response.Error)
         {
             var mensaje = await response.GetErrorMessageAsync();
